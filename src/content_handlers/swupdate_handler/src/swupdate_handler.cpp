@@ -270,7 +270,8 @@ done:
     workflow_free_string(workFolder);
 
     // Always require a reboot after successful apply
-    workflow_request_immediate_reboot(workflowData->WorkflowHandle);
+    //workflow_request_immediate_reboot(workflowData->WorkflowHandle);
+    workflow_request_agent_restart(workflowData->WorkflowHandle);
     result = { ADUC_Result_Apply_RequiredAgentRestart};
 
     return result;

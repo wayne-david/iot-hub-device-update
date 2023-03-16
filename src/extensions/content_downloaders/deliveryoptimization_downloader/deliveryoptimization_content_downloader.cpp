@@ -22,6 +22,7 @@
 
 #include <do_config.h>
 #include <do_download.h>
+#include <do_exceptions.h>
 
 namespace MSDO = microsoft::deliveryoptimization;
 

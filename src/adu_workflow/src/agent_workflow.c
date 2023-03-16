@@ -775,7 +775,17 @@ void ADUC_Workflow_WorkCompletionCallback(const void* workCompletionToken, ADUC_
 
     if (IsAducResultCodeSuccess(result.ResultCode))
     {
+        //wayne need to check if current state is Deployment complete and update state to deployment successfull,then autotransition.
         // Operation succeeded -- go to next state.
+        if(ADUCITF_WorkflowStepToString(entry->WorkflowStep) == "ProcessDeployment"){
+            char* updateId = workflow_get_expected_update_id_string(workflowHandle);
+                ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(workflowData, updateId);
+
+                ADUC_WorkflowData_SetLastReportedState(updateState, workflowData);
+
+                workflow_free_string(updateId);
+                goto done;
+        }
 
         const ADUCITF_State nextUpdateState = entry->NextState;
 

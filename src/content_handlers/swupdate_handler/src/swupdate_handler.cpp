@@ -271,7 +271,7 @@ done:
 
     // Always require a reboot after successful apply
     workflow_request_immediate_reboot(workflowData->WorkflowHandle);
-    result = { ADUC_Result_Apply_RequiredImmediateReboot };
+    result = { ADUC_Result_Apply_RequiredAgentRestart};
 
     return result;
 }

@@ -56,7 +56,6 @@ ADUC_Result do_download(
         entity->DownloadUri,
         fullFilePath.str().c_str());
 
-   
     try
     {
         MSDO::download::download_url_to_path(
@@ -64,10 +63,10 @@ ADUC_Result do_download(
 
         resultCode = ADUC_Result_Download_Success;
     }
-     catch (const MSDO::exception& e)
+    catch (const MSDO::exception& e)
     {
         const int32_t doErrorCode = e.error_code();
-         // Note: The call to download_url_to_path() does not make use of a cancellation token,
+        // Note: The call to download_url_to_path() does not make use of a cancellation token,
         // so the download can only timeout or hit a fatal error.
         Log_Error("DO error, msg: %s, code: %#08x, timeout? %d", doErrorCode.message().c_str(), doErrorCode.value(),
             (doErrorCode == std::errc::timed_out));

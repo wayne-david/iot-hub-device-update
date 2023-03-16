@@ -418,13 +418,23 @@ ADUC_Result SWUpdateHandlerImpl::Apply(const tagADUC_WorkflowData* workflowData)
     if (workflow_get_operation_cancel_requested(workflowData->WorkflowHandle))
     {
         Cancel(workflowData);
+        goto done;
     }
+
+    result = {
+        .ResultCode = ADUC_Result_Success,
+        .ExtendedResultCode = 0
+    };
 
 done:
     workflow_free_string(workFolder);
 
     // Always require a reboot after successful apply
-    result = { ADUC_Result_Apply_RequiredImmediateReboot };
+    if (IsAducResultCodeSuccess(result.ResultCode))
+    {
+        workflow_request_immediate_reboot(workflowData->WorkflowHandle);
+        result = { ADUC_Result_Apply_RequiredImmediateReboot };
+    }
 
     return result;
 }
@@ -601,7 +611,7 @@ ADUC_Result SWUpdateHandlerImpl::PrepareCommandArguments(
 
     installedCriteria = workflow_get_installed_criteria(workflowHandle);
 
-    // Parse componenets list. If the list is empty, nothing to download.
+    // Parse components list. If the list is empty, nothing to download.
     selectedComponentsJson = workflow_peek_selected_components(workflowHandle);
 
     if (!IsNullOrEmpty(selectedComponentsJson))
@@ -651,7 +661,7 @@ ADUC_Result SWUpdateHandlerImpl::PrepareCommandArguments(
     if (IsNullOrEmpty(scriptFileName))
     {
         result.ExtendedResultCode = ADUC_ERC_SWUPDATE_HANDLER_MISSING_SCRIPT_FILE_NAME;
-        workflow_set_result_details(workflowHandle, "Missing 'handlerProperies.scriptFileName' property");
+        workflow_set_result_details(workflowHandle, "Missing 'handlerProperties.scriptFileName' property");
         goto done;
     }
 
@@ -664,7 +674,7 @@ ADUC_Result SWUpdateHandlerImpl::PrepareCommandArguments(
     if (IsNullOrEmpty(swuFileName))
     {
         result.ExtendedResultCode = ADUC_ERC_SWUPDATE_HANDLER_MISSING_SWU_FILE_NAME;
-        workflow_set_result_details(workflowHandle, "Missing 'handlerProperies.swuFileName' property");
+        workflow_set_result_details(workflowHandle, "Missing 'handlerProperties.swuFileName' property");
         goto done;
     }
 

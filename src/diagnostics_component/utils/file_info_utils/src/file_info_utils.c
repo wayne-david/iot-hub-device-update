@@ -93,9 +93,9 @@ bool FileInfoUtils_InsertFileInfoIntoArray(
  * @param[in] directoryPath the directory to scan for the newest files
  * @returns true if we're able to find new files to add to @p logFiles, false if unsuccessful
  */
-bool FileInfoUtils_FillFileInfoWithNewestFilesInDir(FileInfo* logFiles, size_t logFileSize, const char* directoryPath)
+_Bool FileInfoUtils_FillFileInfoWithNewestFilesInDir(FileInfo* logFiles, size_t logFileSize, const char* directoryPath)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
 
     if (logFiles == NULL || logFileSize == 0 || directoryPath == NULL)
     {
@@ -191,10 +191,10 @@ done:
  * @param[in] maxFileSize the maximum size of all the files that can be uploaded in bytes
  * @returns true on successful scanning and populating of filePathVectorHandle; false on failure
  */
-bool FileInfoUtils_GetNewestFilesInDirUnderSize(
+_Bool FileInfoUtils_GetNewestFilesInDirUnderSize(
     VECTOR_HANDLE* fileNameVector, const char* directoryPath, const unsigned int maxFileSize)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
 
     VECTOR_HANDLE fileVector = NULL;
 

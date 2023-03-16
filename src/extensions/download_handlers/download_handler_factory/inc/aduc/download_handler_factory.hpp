@@ -36,7 +36,7 @@ public:
      * @param downloadHandlerId The download handler id.
      * @return DownloadHandlerPlugin* The download handler plugin instance.
      */
-    DownloadHandlerPlugin* LoadDownloadHandler(const std::string& downloadHandlerId) noexcept;
+    DownloadHandlerPlugin* LoadDownloadHandler(const std::string& downloadHandlerId);
 
 private:
     DownloadHandlerFactory() = default;

@@ -60,7 +60,7 @@
  * @param componentObj JSON Object with the associated components for the log component
  * @returns true on success; false on failure
  */
-static bool
+static _Bool
 DiagnosticsConfigUtils_LogComponentInitFromObj(DiagnosticsLogComponent* component, JSON_Object* componentObj)
 {
     if (componentObj == NULL || component == NULL)
@@ -70,7 +70,7 @@ DiagnosticsConfigUtils_LogComponentInitFromObj(DiagnosticsLogComponent* componen
 
     memset(component, 0, sizeof(*component));
 
-    bool succeeded = false;
+    _Bool succeeded = false;
     char* componentName = NULL;
     char* logPath = NULL;
 
@@ -120,14 +120,14 @@ done:
  * @param fileJsonValue a JSON_Value representation of a diagnostics-config.json file
  * @returns true on successful configuration; false on failures
  */
-bool DiagnosticsConfigUtils_InitFromJSON(DiagnosticsWorkflowData* workflowData, JSON_Value* fileJsonValue)
+_Bool DiagnosticsConfigUtils_InitFromJSON(DiagnosticsWorkflowData* workflowData, JSON_Value* fileJsonValue)
 {
     if (workflowData == NULL || fileJsonValue == NULL)
     {
         return false;
     }
 
-    bool succeeded = false;
+    _Bool succeeded = false;
 
     memset(workflowData, 0, sizeof(*workflowData));
 
@@ -220,7 +220,7 @@ done:
  * @param filePath path to the diagnostics configuration file
  * @returns true on successful configuration, false on failure
  */
-bool DiagnosticsConfigUtils_InitFromFile(DiagnosticsWorkflowData* workflowData, const char* filePath)
+_Bool DiagnosticsConfigUtils_InitFromFile(DiagnosticsWorkflowData* workflowData, const char* filePath)
 {
     JSON_Value* fileJsonValue = NULL;
 
@@ -236,7 +236,7 @@ bool DiagnosticsConfigUtils_InitFromFile(DiagnosticsWorkflowData* workflowData, 
         return false;
     }
 
-    bool succeeded = DiagnosticsConfigUtils_InitFromJSON(workflowData, fileJsonValue);
+    _Bool succeeded = DiagnosticsConfigUtils_InitFromJSON(workflowData, fileJsonValue);
 
     json_value_free(fileJsonValue);
 

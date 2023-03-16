@@ -80,7 +80,7 @@ struct tagADUC_WorkflowData;
  * @param installedUpdateId Installed update id (if update completed successfully).
  * @return true if succeeded.
  */
-typedef bool (*ADUC_ReportStateAndResultAsyncCallback)(
+typedef _Bool (*ADUC_ReportStateAndResultAsyncCallback)(
     ADUC_WorkflowDataToken workflowData,
     ADUCITF_State updateState,
     const ADUC_Result* result,
@@ -111,11 +111,11 @@ typedef struct tagADUC_WorkflowData
 
     ADUC_UpdateActionCallbacks UpdateActionCallbacks; /**< Upper-level registration data; function pointers, etc. */
 
-    bool IsRegistered; /**< True if UpdateActionCallbacks is valid and needs to be ultimately unregistered. */
+    _Bool IsRegistered; /**< True if UpdateActionCallbacks is valid and needs to be ultimately unregistered. */
 
-    bool StartupIdleCallSent; /**< True once the initial Idle call is sent to the orchestrator on agent startup. */
+    _Bool StartupIdleCallSent; /**< True once the initial Idle call is sent to the orchestrator on agent startup. */
 
-    bool OperationCancelled; /**< Was the operation in progress requested to cancel? */
+    _Bool OperationCancelled; /**< Was the operation in progress requested to cancel? */
 
     ADUC_SystemRebootState SystemRebootState; /**< The system reboot state. */
 

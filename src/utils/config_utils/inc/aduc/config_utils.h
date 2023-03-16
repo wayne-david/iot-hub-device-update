@@ -61,6 +61,8 @@ typedef struct tagADUC_ConfigInfo
 
     char* model; /**< Device info model. */
 
+    bool simulateUnhealthyState; /**< A configuration for simulator. */
+
     char* edgegatewayCertPath; /**< Edge gateway certificate path */
 
     ADUC_AgentInfo* agents; /**< Array of agents that are configured. */
@@ -78,7 +80,7 @@ typedef struct tagADUC_ConfigInfo
  * @param configFilePath The path of configuration file
  * @returns True if successfully allocated, False if failure
  */
-bool ADUC_ConfigInfo_Init(ADUC_ConfigInfo* config, const char* configFilePath);
+_Bool ADUC_ConfigInfo_Init(ADUC_ConfigInfo* config, const char* configFilePath);
 
 /**
  * @brief Free members of ADUC_ConfigInfo object.

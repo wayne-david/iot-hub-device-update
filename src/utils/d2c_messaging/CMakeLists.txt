@@ -19,8 +19,7 @@ target_link_libraries (
     ${PROJECT_NAME}
     PUBLIC aduc::adu_types
     PRIVATE aduc::communication_abstraction
-            aduc::logging
-            aduc::retry_utils)
+            aduc::logging)
 
 if (ADUC_BUILD_UNIT_TESTS)
     add_subdirectory (tests)

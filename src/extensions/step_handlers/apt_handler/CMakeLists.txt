@@ -2,8 +2,12 @@ cmake_minimum_required (VERSION 3.5)
 
 set (target_name microsoft_apt_1)
 
-add_library (${target_name} MODULE)
-target_sources (${target_name} PRIVATE src/apt_handler.cpp src/apt_parser.cpp)
+set (SOURCE_ALL src/apt_handler.cpp src/apt_parser.cpp)
+
+#
+# Create a SHARED library.
+#
+add_library (${target_name} SHARED ${SOURCE_ALL})
 
 add_library (aduc::${target_name} ALIAS ${target_name})
 
@@ -33,7 +37,6 @@ target_link_libraries (
             aduc::contract_utils
             aduc::extension_manager
             aduc::installed_criteria_utils
-            aduc::parser_utils
             aduc::process_utils
             aduc::workflow_data_utils
             aduc::workflow_utils

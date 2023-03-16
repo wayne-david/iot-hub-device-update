@@ -44,14 +44,9 @@
  * @param[in] key The key in question.
  * @return Whether the key was found in the connection string.
  */
-bool ConnectionStringUtils_DoesKeyExist(const char* connectionString, const char* key)
+_Bool ConnectionStringUtils_DoesKeyExist(const char* connectionString, const char* key)
 {
-    bool keyExists = false;
-
-    if ( IsNullOrEmpty(connectionString)|| IsNullOrEmpty(key))
-    {
-        return false;
-    }
+    _Bool keyExists = false;
 
     MAP_HANDLE map = connectionstringparser_parse_from_char(connectionString);
     if (map == NULL)
@@ -59,7 +54,7 @@ bool ConnectionStringUtils_DoesKeyExist(const char* connectionString, const char
         goto done;
     }
 
-    bool tmp = false;
+    _Bool tmp = false;
     MAP_RESULT result = Map_ContainsKey(map, key, &tmp);
     if (result != MAP_OK)
     {
@@ -81,9 +76,9 @@ done:
  * @param[out] value a copy of the value for the key allocated with malloc, or NULL if not found.
  * @return true on success; false otherwise.
  */
-bool ConnectionStringUtils_GetValue(const char* connectionString, const char* key, char** value)
+_Bool ConnectionStringUtils_GetValue(const char* connectionString, const char* key, char** value)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
     char* tempVal = NULL;
 
     MAP_HANDLE map = NULL;
@@ -132,7 +127,7 @@ done:
  * @param[out] deviceIdHandle the handle to be allocated with the device-id value
  * @return true on success; false otherwise
  */
-bool ConnectionStringUtils_GetDeviceIdFromConnectionString(const char* connectionString, char** deviceIdHandle)
+_Bool ConnectionStringUtils_GetDeviceIdFromConnectionString(const char* connectionString, char** deviceIdHandle)
 {
     return ConnectionStringUtils_GetValue(connectionString, CONNECTION_STRING_DEVICE_ID_KEY, deviceIdHandle);
 }
@@ -143,7 +138,7 @@ bool ConnectionStringUtils_GetDeviceIdFromConnectionString(const char* connectio
  * @param[out] moduleIdHandle the handle to be allocated with the module-id value
  * @returns true on success; false on failure
  */
-bool ConnectionStringUtils_GetModuleIdFromConnectionString(const char* connectionString, char** moduleIdHandle)
+_Bool ConnectionStringUtils_GetModuleIdFromConnectionString(const char* connectionString, char** moduleIdHandle)
 {
     return ConnectionStringUtils_GetValue(connectionString, CONNECTION_STRING_MODULE_ID_KEY, moduleIdHandle);
 }
@@ -153,7 +148,7 @@ bool ConnectionStringUtils_GetModuleIdFromConnectionString(const char* connectio
  * @param[in] connectionString the connection string from the connection info.
  * @return Whether it is nested edge connectivity.
  */
-bool ConnectionStringUtils_IsNestedEdge(const char* connectionString)
+_Bool ConnectionStringUtils_IsNestedEdge(const char* connectionString)
 {
     return ConnectionStringUtils_DoesKeyExist(connectionString, CONNECTION_STRING_GATEWAY_HOSTNAME_KEY);
 }

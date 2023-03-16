@@ -219,7 +219,6 @@ static bool ExtractJWSHeader(const char* jws, char** header)
     }
 
     strncpy(tempHeader, jws, headerLen);
-    tempHeader[headerLen] = '\0';
     success = true;
 
 done:

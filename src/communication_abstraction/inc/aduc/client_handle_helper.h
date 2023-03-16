@@ -29,7 +29,7 @@ EXTERN_C_BEGIN
  */
 MOCKABLE_FUNCTION(
     ,
-    bool,
+    _Bool,
     ClientHandle_CreateFromConnectionString,
     ADUC_ClientHandle*,
     iotHubClientHandle,

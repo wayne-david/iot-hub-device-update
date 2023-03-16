@@ -9,15 +9,13 @@
 #ifndef ADUC_COMMAND_HELPER_H
 #define ADUC_COMMAND_HELPER_H
 
-#include <stdbool.h>
-
 /**
  * @brief Callback method for a command.
  *
  * @param workCompletionData Method and value to call when work completes if *Result_InProgress returned.
  * @param workflowData Data about what to download.
  */
-typedef bool (*ADUC_CommandCallbackFunc)(const char* command, void* commandContext);
+typedef _Bool (*ADUC_CommandCallbackFunc)(const char* command, void* commandContext);
 
 /**
  * @brief A struct containing a basic command information.
@@ -33,14 +31,14 @@ typedef struct _tagADUC_Command
  *
  * @param command A command to send.
  *
- * @return bool Returns true if success.
+ * @return _Bool Returns true if success.
  */
-bool SendCommand(const char* command);
+_Bool SendCommand(const char* command);
 
 /**
  * @brief Initialize command listener thread.
  */
-bool InitializeCommandListenerThread();
+_Bool InitializeCommandListenerThread();
 
 /**
  * @brief Uninitialize command listener thread.
@@ -59,8 +57,8 @@ int RegisterCommand(ADUC_Command* command);
  * @brief Unregister command.
  *
  * @param command Pointer to a command to unregister.
- * @return bool If success, return true. Otherwise, returns false.
+ * @return _Bool If success, return true. Otherwise, returns false.
  */
-bool UnregisterCommand(ADUC_Command* command);
+_Bool UnregisterCommand(ADUC_Command* command);
 
 #endif /* ADUC_COMMAND_HELPER_H */

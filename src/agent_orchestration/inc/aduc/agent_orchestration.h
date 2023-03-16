@@ -24,14 +24,14 @@ ADUCITF_WorkflowStep AgentOrchestration_GetWorkflowStep(const ADUCITF_UpdateActi
  * @param entryAutoTransitionWorkflowStep The auto transition workflow step from the entry in the workflow handler map.
  * @return true if workflow is complete.
  */
-bool AgentOrchestration_IsWorkflowComplete(ADUCITF_WorkflowStep entryAutoTransitionWorkflowStep);
+_Bool AgentOrchestration_IsWorkflowComplete(ADUCITF_WorkflowStep entryAutoTransitionWorkflowStep);
 
 /**
  * @brief Returns whether reporting to the cloud should be done.
  * @param updateState the current update state.
  * @return true if it should not report.
  */
-bool AgentOrchestration_ShouldNotReportToCloud(ADUCITF_State updateState);
+_Bool AgentOrchestration_ShouldNotReportToCloud(ADUCITF_State updateState);
 
 /**
  * @brief Returns whether a retry should be done or not.
@@ -39,6 +39,6 @@ bool AgentOrchestration_ShouldNotReportToCloud(ADUCITF_State updateState);
  * @param newToken The timestamp token of the new workflow request.
  * @return true if a retry should be done.
  */
-bool AgentOrchestration_IsRetryApplicable(const char* currentToken, const char* newToken);
+_Bool AgentOrchestration_IsRetryApplicable(const char* currentToken, const char* newToken);
 
 #endif // __AGENT_ORCHESTRATION_H__

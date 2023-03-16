@@ -55,23 +55,23 @@ static const char* aduc_optional_group_memberships[] = {
  *
  * @return true if connection info can be obtained
  */
-bool GetConnectionInfoFromIdentityService(ADUC_ConnectionInfo* info);
+_Bool GetConnectionInfoFromIdentityService(ADUC_ConnectionInfo* info);
 
 /**
  * @brief Get the Connection Info from connection string, if a connection string is provided in configuration file
  *
  * @return true if connection info can be obtained
  */
-bool GetConnectionInfoFromConnectionString(ADUC_ConnectionInfo* info, const char* connectionString);
+_Bool GetConnectionInfoFromConnectionString(ADUC_ConnectionInfo* info, const char* connectionString);
 
 /**
  * @brief Checks whether we can obtain a device or module connection string.
  *
  * @return true if connection string can be obtained.
  */
-bool IsConnectionInfoValid(const ADUC_LaunchArguments* launchArgs, ADUC_ConfigInfo* config)
+_Bool IsConnectionInfoValid(const ADUC_LaunchArguments* launchArgs, ADUC_ConfigInfo* config)
 {
-    bool validInfo = false;
+    _Bool validInfo = false;
 
     ADUC_ConnectionInfo info = {};
 
@@ -106,13 +106,23 @@ done:
 }
 
 /**
+ * @brief Helper function for simulating an unhealthy state.
+ *
+ * @return true if an ADU configuration file contains simulateUnhealthyState value (any value).
+ */
+_Bool IsSimulatingUnhealthyState(ADUC_ConfigInfo* config)
+{
+    return config->simulateUnhealthyState;
+}
+
+/**
  * @brief Reports which required users do not exist.
  * @remark Goes through the whole list of users to trace any that are missing.
  * @return true if all necessary users exist, or false if any do not exist.
  */
-static bool ReportMissingRequiredUsers()
+static _Bool ReportMissingRequiredUsers()
 {
-    bool result = true;
+    _Bool result = true;
 
     for (int i = 0; i < ARRAY_SIZE(aduc_required_users); ++i)
     {
@@ -141,9 +151,9 @@ static bool ReportMissingRequiredUsers()
  * @remark Goes through the whole list of groups to trace any that are missing.
  * @return true if necessary groups exist.
  */
-static bool ReportMissingRequiredGroups()
+static _Bool ReportMissingRequiredGroups()
 {
-    bool result = true;
+    _Bool result = true;
 
     for (int i = 0; i < ARRAY_SIZE(aduc_required_groups); ++i)
     {
@@ -172,9 +182,9 @@ static bool ReportMissingRequiredGroups()
  * @remark Goes through all required user/group relationships and traces any that are missing.
  * @returns true if all necessary group membership entries exist, or false if any are missing.
  */
-static bool ReportMissingGroupMemberships()
+static _Bool ReportMissingGroupMemberships()
 {
-    bool result = true;
+    _Bool result = true;
 
     // ADUC group memberships
     for (int i = 0; i < ARRAY_SIZE(aduc_required_group_memberships); ++i)
@@ -210,13 +220,13 @@ static bool ReportMissingGroupMemberships()
  * @brief Reports on necessary user and group entries.
  * @return true if all necessary entries exist, or false if any are missing.
  */
-static bool ReportUserAndGroupRequirements()
+static _Bool ReportUserAndGroupRequirements()
 {
-    bool result = false;
+    _Bool result = false;
 
     // Call both to get logging side-effects.
-    bool missingUser = !ReportMissingRequiredUsers();
-    bool missingGroup = !ReportMissingRequiredGroups();
+    _Bool missingUser = !ReportMissingRequiredUsers();
+    _Bool missingGroup = !ReportMissingRequiredGroups();
     if (missingUser || missingGroup)
     {
         // skip reporting group memberships if any user/groups are missing
@@ -239,9 +249,9 @@ done:
  * @brief Checks the conf directory has correct ownerships and permissions and logs when an issue is found.
  * @returns true if everything is correct.
  */
-static bool CheckConfDirOwnershipAndPermissions()
+static _Bool CheckConfDirOwnershipAndPermissions()
 {
-    bool result = true;
+    _Bool result = true;
 
     const char* path = ADUC_CONF_FOLDER;
 
@@ -280,9 +290,9 @@ static bool CheckConfDirOwnershipAndPermissions()
  * @brief Checks the conf file ownerships and permissions and logs issues when found.
  * @returns true if everything is correct.
  */
-static bool CheckConfFile()
+static _Bool CheckConfFile()
 {
-    bool result = true;
+    _Bool result = true;
 
     const char* path = ADUC_CONF_FILE_PATH;
 
@@ -315,9 +325,9 @@ static bool CheckConfFile()
  * @brief Checks the log directory ownerships and permissions.
  * @returns true if everything is correct.
  */
-static bool CheckLogDir()
+static _Bool CheckLogDir()
 {
-    bool result = false;
+    _Bool result = false;
 
     const char* dir = ADUC_LOG_FOLDER;
 
@@ -362,10 +372,10 @@ done:
  * @param expectedPermissions The expected permissions of the file object.
  * @returns true if everything is correct.
  */
-static bool CheckDirOwnershipAndVerifyFilemodeExact(
+static _Bool CheckDirOwnershipAndVerifyFilemodeExact(
     const char* path, const char* user, const char* group, const mode_t expected_permissions)
 {
-    bool result = false;
+    _Bool result = false;
 
     int err;
     if (!SystemUtils_IsDir(path, &err))
@@ -402,7 +412,7 @@ done:
  * @brief Checks the data directory ownerships and permissions.
  * @returns true if everything is correct.
  */
-static bool CheckDataDir()
+static _Bool CheckDataDir()
 {
     // Note: "Other" bits are cleared to align with ADUC_SystemUtils_MkDirRecursiveDefault and packaging.
     const mode_t expected_permissions = S_IRWXU | S_IRWXG;
@@ -414,7 +424,7 @@ static bool CheckDataDir()
  * @brief Checks the downloads directory ownerships and permissions.
  * @returns true if everything is correct.
  */
-static bool CheckDownloadsDir()
+static _Bool CheckDownloadsDir()
 {
     // Note: "Other" bits are cleared to align with ADUC_SystemUtils_MkDirRecursiveDefault and packaging.
     const mode_t expected_permissions = S_IRWXU | S_IRWXG;
@@ -426,9 +436,9 @@ static bool CheckDownloadsDir()
  * @brief Checks the agent binary ownerships and permissions.
  * @returns true if everything is correct.
  */
-static bool CheckAgentBinary()
+static _Bool CheckAgentBinary()
 {
-    bool result = false;
+    _Bool result = false;
 
     const char* path = ADUC_AGENT_FILEPATH;
 
@@ -465,9 +475,9 @@ done:
  * @brief Checks the adu-shell binary ownerships and permissions.
  * @returns true if everything is correct.
  */
-static bool CheckShellBinary()
+static _Bool CheckShellBinary()
 {
-    bool result = false;
+    _Bool result = false;
 
     const char* path = ADUSHELL_FILE_PATH;
 
@@ -512,9 +522,9 @@ done:
  * @brief Helper function for checking correct ownership and permissions for dirs and files.
  * @return true if dirs and files have correct ownership and permissions.
  */
-static bool AreDirAndFilePermissionsValid()
+static _Bool AreDirAndFilePermissionsValid()
 {
-    bool result = true;
+    _Bool result = true;
 
     if (!ReportUserAndGroupRequirements())
     {
@@ -568,9 +578,9 @@ static bool AreDirAndFilePermissionsValid()
  *
  * @return true if all checks passed.
  */
-bool HealthCheck(const ADUC_LaunchArguments* launchArgs)
+_Bool HealthCheck(const ADUC_LaunchArguments* launchArgs)
 {
-    bool isHealthy = false;
+    _Bool isHealthy = false;
 
     ADUC_ConfigInfo config = {};
     if (!ADUC_ConfigInfo_Init(&config, ADUC_CONF_FILE_PATH))
@@ -589,6 +599,14 @@ bool HealthCheck(const ADUC_LaunchArguments* launchArgs)
     {
         goto done;
     }
+
+#ifdef ADUC_PLATFORM_SIMULATOR
+    if (IsSimulatingUnhealthyState(&config))
+    {
+        Log_Error("Simulating an unhealthy state.");
+        goto done;
+    }
+#endif
 
     isHealthy = true;
 

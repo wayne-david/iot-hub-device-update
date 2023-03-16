@@ -29,6 +29,7 @@ static const char* validConfigContentStr =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("compatPropertyNames": "manufacturer,model",)"
@@ -60,6 +61,7 @@ static const char* validConfigContentNoCompatPropertyNames =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("agents": [)"
@@ -90,6 +92,7 @@ static const char* validConfigContentMqttIotHubProtocol =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("iotHubProtocol": "mqtt",)"
@@ -121,6 +124,7 @@ static const char* validConfigContentMqttWebSocketsIotHubProtocol =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("iotHubProtocol": "mqtt/ws",)"
@@ -152,6 +156,7 @@ static const char* validConfigContentMissingIotHubProtocol =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("agents": [)"
@@ -182,6 +187,7 @@ static const char* invalidConfigContentNoDeviceInfoStr =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": false,)"
         R"("agents": [)"
             R"({ )"
             R"("name": "host-update",)"
@@ -210,6 +216,7 @@ static const char* invalidConfigContentNoDevicePropertiesStr =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("compatPropertyNames": "manufacturer,model",)"
@@ -239,6 +246,7 @@ static const char* invalidConfigContentStr =
     R"({)"
         R"("schemaVersion": "1.1",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": false,)"
         R"("agents": [])"
     R"(})";
 
@@ -246,6 +254,7 @@ static const char* validConfigContentAdditionalPropertyNames =
     R"({)"
         R"("schemaVersion": "1.0",)"
         R"("aduShellTrustedUsers": ["adu","do"],)"
+        R"("simulateUnhealthyState": true,)"
         R"("manufacturer": "device_info_manufacturer",)"
         R"("model": "device_info_model",)"
         R"("agents": [)"
@@ -314,6 +323,9 @@ TEST_CASE_METHOD(GlobalMockHookTestCaseFixture, "ADUC_ConfigInfo_Init Functional
         CHECK(ADUC_ConfigInfo_Init(&config, "/etc/adu/du-config.json"));
         CHECK_THAT(json_array_get_string(config.aduShellTrustedUsers, 0), Equals("adu"));
         CHECK_THAT(json_array_get_string(config.aduShellTrustedUsers, 1), Equals("do"));
+#ifdef ADUC_PLATFORM_SIMULATOR
+        CHECK(config.simulateUnhealthyState);
+#endif
         CHECK_THAT(config.schemaVersion, Equals("1.1"));
         CHECK_THAT(config.manufacturer, Equals("device_info_manufacturer"));
         CHECK_THAT(config.model, Equals("device_info_model"));

@@ -7,7 +7,6 @@
  */
 #include "aduc/simulator_handler.hpp"
 #include "aduc/logging.h"
-#include "aduc/parser_utils.h" // ADUC_FileEntity_Uninit
 #include "aduc/workflow_utils.h"
 #include <stdarg.h> // for va_*
 #include <stdlib.h> // for getenv
@@ -215,8 +214,6 @@ ADUC_Result SimulatorHandlerImpl::Download(const tagADUC_WorkflowData* workflowD
     ADUC_Result result = { .ResultCode = ADUC_Result_Download_Success };
     ADUC_WorkflowHandle handle = workflowData->WorkflowHandle;
     ADUC_WorkflowHandle childHandle = nullptr;
-    ADUC_FileEntity fileEntity;
-    memset(&fileEntity, 0, sizeof(fileEntity));
 
     auto fileCount = static_cast<unsigned int>(workflow_get_update_files_count(handle));
 
@@ -235,26 +232,32 @@ ADUC_Result SimulatorHandlerImpl::Download(const tagADUC_WorkflowData* workflowD
 
     for (size_t i = 0; i < fileCount; i++)
     {
+        ADUC_FileEntity* entity = nullptr;
         result = { .ResultCode = ADUC_Result_Download_Success };
 
-        if (!workflow_get_update_file(handle, i, &fileEntity))
+        bool fileEntityOk = workflow_get_update_file(handle, i, &entity);
+
+        if (!fileEntityOk || entity == nullptr)
         {
             result = { .ResultCode = ADUC_Result_Failure,
                        .ExtendedResultCode = ADUC_ERC_STEPS_HANDLER_GET_FILE_ENTITY_FAILURE };
             goto done;
         }
 
-        Log_Info("Downloading file#%d (targetFileName:%s).", i, fileEntity.TargetFilename);
+        Log_Info("Downloading file#%d (targetFileName:%s).", i, entity->TargetFilename);
 
         JSON_Object* resultForFile =
-            json_value_get_object(json_object_get_value(downloadResult, fileEntity.TargetFilename));
+            json_value_get_object(json_object_get_value(downloadResult, entity->TargetFilename));
 
         if (resultForFile == nullptr)
         {
-            Log_Info("No matching results for file '%s', fallback to catch-all result", fileEntity.TargetFilename);
+            Log_Info("No matching results for file '%s', fallback to catch-all result", entity->TargetFilename);
 
             resultForFile = json_value_get_object(json_object_get_value(downloadResult, "*"));
         }
+
+        workflow_free_file_entity(entity);
+        entity = nullptr;
 
         if (resultForFile != nullptr)
         {
@@ -274,7 +277,6 @@ ADUC_Result SimulatorHandlerImpl::Download(const tagADUC_WorkflowData* workflowD
     }
 
 done:
-    ADUC_FileEntity_Uninit(&fileEntity);
 
     if (data != nullptr)
     {

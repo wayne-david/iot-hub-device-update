@@ -20,7 +20,6 @@
 #include "aduc/adu_core_exports.h"
 #include "aduc/extension_manager.hpp"
 #include "aduc/logging.h"
-#include "aduc/parser_utils.h" // ADUC_FileEntity_Uninit
 #include "aduc/process_utils.hpp"
 #include "aduc/string_c_utils.h"
 #include "aduc/string_utils.hpp"
@@ -125,8 +124,7 @@ ADUC_Result SWUpdateHandlerImpl::Download(const tagADUC_WorkflowData* workflowDa
 {
     std::stringstream updateFilename;
     ADUC_Result result = { ADUC_Result_Failure };
-    ADUC_FileEntity fileEntity;
-    memset(&fileEntity, 0, sizeof(fileEntity));
+    ADUC_FileEntity* entity = nullptr;
     ADUC_WorkflowHandle workflowHandle = workflowData->WorkflowHandle;
     char* workFolder = workflow_get_workfolder(workflowHandle);
     int fileCount = 0;
@@ -145,8 +143,7 @@ ADUC_Result SWUpdateHandlerImpl::Download(const tagADUC_WorkflowData* workflowDa
     updateTypeOk = ADUC_ParseUpdateType(updateType, &updateName, &updateTypeVersion);
     if (!updateTypeOk)
     {
-        Log_Error(
-            "SWUpdate packages download failed. Unable to parse updateName and updateTypeVersion from updateType.");
+        Log_Error("SWUpdate packages download failed. Unknown Handler Version (UpdateDateType:%s)", updateType);
         result.ExtendedResultCode = ADUC_ERC_SWUPDATE_HANDLER_DOWNLOAD_FAILURE_UNKNOWN_UPDATE_VERSION;
         goto done;
     }
@@ -167,26 +164,25 @@ ADUC_Result SWUpdateHandlerImpl::Download(const tagADUC_WorkflowData* workflowDa
         goto done;
     }
 
-    if (!workflow_get_update_file(workflowHandle, 0, &fileEntity))
+    if (!workflow_get_update_file(workflowHandle, 0, &entity))
     {
         result.ExtendedResultCode = ADUC_ERC_SWUPDATE_HANDLER_DOWNLOAD_BAD_FILE_ENTITY;
         goto done;
     }
 
-    updateFilename << workFolder << "/" << fileEntity.TargetFilename;
+    updateFilename << workFolder << "/" << entity->TargetFilename;
 
     {
         ExtensionManager_Download_Options downloadOptions = {
             .retryTimeout = DO_RETRY_TIMEOUT_DEFAULT,
         };
 
-        result = ExtensionManager::Download(&fileEntity, workflowHandle, &downloadOptions, nullptr);
+        result = ExtensionManager::Download(entity, workflowHandle, &downloadOptions, nullptr);
     }
 
 done:
     workflow_free_string(workFolder);
-    ADUC_FileEntity_Uninit(&fileEntity);
-    free(updateName);
+    workflow_free_file_entity(entity);
 
     return result;
 }
@@ -200,8 +196,7 @@ done:
 ADUC_Result SWUpdateHandlerImpl::Install(const tagADUC_WorkflowData* workflowData)
 {
     ADUC_Result result = { ADUC_Result_Failure };
-    ADUC_FileEntity fileEntity;
-    memset(&fileEntity, 0, sizeof(fileEntity));
+    ADUC_FileEntity* entity = nullptr;
     ADUC_WorkflowHandle workflowHandle = workflowData->WorkflowHandle;
     char* workFolder = workflow_get_workfolder(workflowHandle);
 
@@ -223,7 +218,7 @@ ADUC_Result SWUpdateHandlerImpl::Install(const tagADUC_WorkflowData* workflowDat
         goto done;
     }
 
-    if (!workflow_get_update_file(workflowHandle, 0, &fileEntity))
+    if (!workflow_get_update_file(workflowHandle, 0, &entity))
     {
         result.ExtendedResultCode = ADUC_ERC_SWUPDATE_HANDLER_INSTALL_FAILURE_BAD_FILE_ENTITY;
         goto done;
@@ -244,7 +239,7 @@ ADUC_Result SWUpdateHandlerImpl::Install(const tagADUC_WorkflowData* workflowDat
                                        adushconst::update_action_install };
 
         std::stringstream data;
-        data << workFolder << "/" << fileEntity.TargetFilename;
+        data << workFolder << "/" << entity->TargetFilename;
         args.emplace_back(adushconst::target_data_opt);
         args.emplace_back(data.str().c_str());
 
@@ -268,7 +263,7 @@ ADUC_Result SWUpdateHandlerImpl::Install(const tagADUC_WorkflowData* workflowDat
 
 done:
     workflow_free_string(workFolder);
-    ADUC_FileEntity_Uninit(&fileEntity);
+    workflow_free_file_entity(entity);
     return result;
 }
 
@@ -320,18 +315,14 @@ ADUC_Result SWUpdateHandlerImpl::Apply(const tagADUC_WorkflowData* workflowData)
     // Cancel requested?
     if (workflow_is_cancel_requested(workflowData->WorkflowHandle))
     {
-        Log_Info("Workflow cancel requested. Calling Cancel() now...");
         result = this->Cancel(workflowData);
         goto done;
     }
 
     if (workflow_get_operation_cancel_requested(workflowData->WorkflowHandle))
     {
-        Log_Info("Workflow operation cancel requested. Calling CancelApply() now...");
         CancelApply(ADUC_LOG_FOLDER);
     }
-
-    result = { .ResultCode = ADUC_Result_Success, .ExtendedResultCode = 0 };
 
 done:
     workflow_free_string(workFolder);
@@ -521,7 +512,6 @@ ADUC_Result SWUpdateHandlerImpl::Backup(const tagADUC_WorkflowData* workflowData
  */
 ADUC_Result SWUpdateHandlerImpl::Restore(const tagADUC_WorkflowData* workflowData)
 {
-    Log_Info("Restore begin.");
     UNREFERENCED_PARAMETER(workflowData);
     ADUC_Result result = { ADUC_Result_Restore_Success };
     ADUC_Result cancel_result = CancelApply(ADUC_LOG_FOLDER);
@@ -530,6 +520,5 @@ ADUC_Result SWUpdateHandlerImpl::Restore(const tagADUC_WorkflowData* workflowDat
         result = { .ResultCode = ADUC_Result_Failure,
                    .ExtendedResultCode = ADUC_ERC_UPPERLEVEL_WORKFLOW_FAILED_RESTORE_FAILED };
     }
-    Log_Info("Restore end.");
     return result;
 }

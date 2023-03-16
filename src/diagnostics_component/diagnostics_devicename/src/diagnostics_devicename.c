@@ -14,7 +14,7 @@
 
 static STRING_HANDLE s_DiagnosticsDeviceName = NULL;
 
-bool DiagnosticsComponent_SetDeviceName(const char* deviceId, const char* moduleId)
+_Bool DiagnosticsComponent_SetDeviceName(const char* deviceId, const char* moduleId)
 {
     if (deviceId == NULL)
     {
@@ -56,7 +56,7 @@ bool DiagnosticsComponent_SetDeviceName(const char* deviceId, const char* module
     return true;
 }
 
-bool DiagnosticsComponent_GetDeviceName(char** deviceNameHandle)
+_Bool DiagnosticsComponent_GetDeviceName(char** deviceNameHandle)
 {
     if (mallocAndStrcpy_s(deviceNameHandle, STRING_c_str(s_DiagnosticsDeviceName)) != 0)
     {

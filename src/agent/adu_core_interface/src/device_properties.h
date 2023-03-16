@@ -17,7 +17,7 @@
  * @param agent the ADUC_AgentInfo that contains the agent info
  * @returns true on successful addition and false on failure
  */
-bool DeviceProperties_AddManufacturerAndModel(JSON_Object* devicePropsObj, const ADUC_AgentInfo* agent);
+_Bool DeviceProperties_AddManufacturerAndModel(JSON_Object* devicePropsObj, const ADUC_AgentInfo* agent);
 
 /**
  * @brief Adds the customized additional device properties to the @p devicePropsObj
@@ -25,7 +25,7 @@ bool DeviceProperties_AddManufacturerAndModel(JSON_Object* devicePropsObj, const
  * @param agent the ADUC_AgentInfo that contains the agent info
  * @returns true on successful addition and false on failure
  */
-bool DeviceProperties_AddAdditionalProperties(JSON_Object* devicePropsObj, const ADUC_AgentInfo* agent);
+_Bool DeviceProperties_AddAdditionalProperties(JSON_Object* devicePropsObj, const ADUC_AgentInfo* agent);
 
 /**
  * @brief Clears the interfaceId property from the @p devicePropsObj
@@ -33,20 +33,20 @@ bool DeviceProperties_AddAdditionalProperties(JSON_Object* devicePropsObj, const
  *      existing value set by DU Agents older than version 1.0.
  * @returns true on successful addition and false on failure
  */
-bool DeviceProperties_ClearInterfaceId(JSON_Object* devicePropsObj);
+_Bool DeviceProperties_ClearInterfaceId(JSON_Object* devicePropsObj);
 
 /**
  * @brief Adds the contractModelId property into the @p devicePropsObj
  * @param devicePropsObj the JSON_Object the contractModelId will be added to
  * @returns true on successful addition and false on failure
  */
-bool DeviceProperties_AddContractModelId(JSON_Object* devicePropsObj);
+_Bool DeviceProperties_AddContractModelId(JSON_Object* devicePropsObj);
 
 /**
  * @brief Adds the version properties into the @p devicePropsObj
  * @param devicePropsObj the JSON_Object the versions will be added to
  * @returns true on successful addition and false on failure
  */
-bool DeviceProperties_AddVersions(JSON_Object* devicePropsObj);
+_Bool DeviceProperties_AddVersions(JSON_Object* devicePropsObj);
 
 #endif // __DEVICE_PROPERTIES_H__

@@ -21,8 +21,7 @@ target_link_libraries (
             aduc::extension_utils
             aduc::hash_utils
             aduc::logging
-            aduc::parser_utils
-            aduc::shared_lib)
+            aduc::parser_utils)
 
 target_compile_definitions (
     ${target_name}

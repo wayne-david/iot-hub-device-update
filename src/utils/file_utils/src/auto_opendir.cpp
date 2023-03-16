@@ -13,13 +13,11 @@ namespace aduc
 {
 AutoOpenDir::AutoOpenDir(const std::string& dirPath)
 {
-    DIR* d = opendir(dirPath.c_str());
-    if (d == nullptr)
+    auto d = opendir(dirPath.c_str());
+    if (d != nullptr)
     {
-        throw std::invalid_argument("opendir failed");
+        dirEntry = d;
     }
-
-    dirEntry = d;
 }
 
 AutoOpenDir::~AutoOpenDir()
@@ -29,16 +27,6 @@ AutoOpenDir::~AutoOpenDir()
         closedir(dirEntry);
         dirEntry = nullptr;
     }
-}
-
-DIR* AutoOpenDir::GetDirectoryStreamHandle()
-{
-    return dirEntry;
-}
-
-struct dirent* AutoOpenDir::NextDirEntry()
-{
-    return readdir(dirEntry);
 }
 
 } // namespace aduc

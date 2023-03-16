@@ -49,7 +49,7 @@ typedef struct tagDeviceInfoInterfaceData
 
     // Values computed at runtime:
     char* Value; /**< Value of property, or NULL if not yet determined. */
-    bool IsDirty; /**< Specifies if Value has changed since last sent to service. */
+    _Bool IsDirty; /**< Specifies if Value has changed since last sent to service. */
 } DeviceInfoInterface_Data;
 
 // The names in this struct must match the property names defined in "urn:azureiot:DeviceManagement:DeviceInformation:1".
@@ -142,9 +142,9 @@ static void RefreshDeviceInfoInterfaceData()
  * @param componentContext Context object to use for related calls.
  * @param argc Count of arguments in @p argv
  * @param argv Command line parameters.
- * @return bool True on success.
+ * @return _Bool True on success.
  */
-bool DeviceInfoInterface_Create(void** componentContext, int argc, char** argv)
+_Bool DeviceInfoInterface_Create(void** componentContext, int argc, char** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);

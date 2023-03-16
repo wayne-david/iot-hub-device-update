@@ -17,7 +17,6 @@ target_link_libraries (
     ${PROJECT_NAME}
     PRIVATE aduc::communication_abstraction
             aduc::d2c_messaging
-            aduc::retry_utils
             Catch2::Catch2)
 
 include (CTest)

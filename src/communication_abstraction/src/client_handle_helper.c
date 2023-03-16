@@ -52,7 +52,7 @@ IOTHUB_MODULE_CLIENT_LL_HANDLE GetModuleClientHandle(ADUC_ClientHandle handle)
  * @param protocol the protocol to use to create the client connection
  * @returns true on success false on failure
  */
-bool ClientHandle_CreateFromConnectionString(
+_Bool ClientHandle_CreateFromConnectionString(
     ADUC_ClientHandle* iotHubClientHandle,
     ADUC_ConnType type,
     const char* connectionString,
@@ -186,11 +186,6 @@ IOTHUB_CLIENT_RESULT ClientHandle_SendEventAsync(
  */
 void ClientHandle_DoWork(ADUC_ClientHandle iotHubClientHandle)
 {
-    if (iotHubClientHandle == NULL)
-    {
-        return;
-    }
-
     if (g_ClientHandleType == ADUC_ConnType_Device)
     {
         IoTHubDeviceClient_LL_DoWork(GetDeviceClientHandle(iotHubClientHandle));

@@ -18,23 +18,23 @@ EXTERN_C_BEGIN
 
 char* ADUC_StringUtils_Trim(char* str);
 
-bool ADUC_ParseUpdateType(const char* updateType, char** updateTypeName, unsigned int* updateTypeVersion);
+_Bool ADUC_ParseUpdateType(const char* updateType, char** updateTypeName, unsigned int* updateTypeVersion);
 
-bool ReadDelimitedValueFromFile(const char* fileName, const char* key, char* value, unsigned int valueLen);
+_Bool ReadDelimitedValueFromFile(const char* fileName, const char* key, char* value, unsigned int valueLen);
 
-bool LoadBufferWithFileContents(const char* filePath, char* strBuffer, const size_t strBuffSize);
+_Bool LoadBufferWithFileContents(const char* filePath, char* strBuffer, const size_t strBuffSize);
 
-bool atoul(const char* str, unsigned long* converted);
+_Bool atoul(const char* str, unsigned long* converted);
 
-bool atoui(const char* str, unsigned int* ui);
+_Bool atoui(const char* str, unsigned int* ui);
 
 size_t ADUC_StrNLen(const char* str, size_t maxsize);
 
 char* ADUC_StringFormat(const char* fmt, ...);
 
-bool IsNullOrEmpty(const char* str);
+_Bool IsNullOrEmpty(const char* str);
 
-bool MallocAndSubstr(char** target, char* source, size_t len);
+_Bool MallocAndSubstr(char** target, char* source, size_t len);
 
 EXTERN_C_END
 

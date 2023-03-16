@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <grp.h> // getgrnm
 #include <pthread.h> // pthread_*
-#include <stdbool.h> // bool
+#include <stdbool.h> // _Bool
 #include <stdio.h> // getline
 #include <stdlib.h> // free
 #include <string.h> // strlen
@@ -29,10 +29,10 @@
 
 static pthread_mutex_t g_commandQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t g_commandListenerThread;
-static bool g_commandListenerThreadCreated = false;
-static bool g_terminate_thread_request = false;
+static _Bool g_commandListenerThreadCreated = false;
+static _Bool g_terminate_thread_request = false;
 
-bool ADUC_OnReprocessUpdate(const char* command, void* context);
+_Bool ADUC_OnReprocessUpdate(const char* command, void* context);
 
 static ADUC_Command* g_commands[MAX_COMMAND_ARRAY_SIZE] = {};
 
@@ -68,11 +68,11 @@ done:
  * @brief Unregister command.
  *
  * @param command Pointer to a command to unregister.
- * @return bool If success, return true. Otherwise, returns false.
+ * @return _Bool If success, return true. Otherwise, returns false.
  */
-bool UnregisterCommand(ADUC_Command* command)
+_Bool UnregisterCommand(ADUC_Command* command)
 {
-    bool res = false;
+    _Bool res = false;
     pthread_mutex_lock(&g_commandQueueMutex);
     for (int i = 0; i < MAX_COMMAND_ARRAY_SIZE; i++)
     {
@@ -94,9 +94,9 @@ done:
 /**
  * @brief Create a FIFO named pipe file.
  *
- * @return bool Returns true if success.
+ * @return _Bool Returns true if success.
  */
-static bool TryCreateFIFOPipe()
+static _Bool TryCreateFIFOPipe()
 {
     // Try to create file if doesn't exist.
     struct stat st;
@@ -157,9 +157,9 @@ static bool TryCreateFIFOPipe()
  *     - The FIFO pipe owners must be adu:adu.
  *     - The calling process' effective group must be 'root' or 'adu'.
  *
- * @return bool
+ * @return _Bool
  */
-static bool SecurityChecks()
+static _Bool SecurityChecks()
 {
     if (!(PermissionUtils_CheckOwnership(ADUC_COMMANDS_FIFO_NAME, ADUC_FILE_USER, ADUC_FILE_GROUP)))
     {
@@ -193,7 +193,7 @@ static bool SecurityChecks()
  */
 static void* ADUC_CommandListenerThread()
 {
-    bool threadCreated = false;
+    _Bool threadCreated = false;
     int fileDescriptor = 0;
 
     if (!TryCreateFIFOPipe() || !SecurityChecks())
@@ -302,12 +302,12 @@ done:
  *
  * @param command A command to send.
  *
- * @return bool Returns true if success.
+ * @return _Bool Returns true if success.
  */
-bool SendCommand(const char* command)
+_Bool SendCommand(const char* command)
 {
     static char buffer[COMMAND_MAX_LEN];
-    bool success = false;
+    _Bool success = false;
     int fd = -1;
     if (command == NULL || *command == '\0')
     {
@@ -356,7 +356,7 @@ done:
 /**
  * @brief Initialize command listener thread.
  */
-bool InitializeCommandListenerThread()
+_Bool InitializeCommandListenerThread()
 {
     if (g_commandListenerThreadCreated)
     {

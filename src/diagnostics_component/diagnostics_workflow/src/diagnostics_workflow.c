@@ -49,7 +49,7 @@ void DiagnosticsComponent_SecurelyFreeSasCredential(STRING_HANDLE* sasCredential
  */
 STRING_HANDLE DiagnosticsComponent_CreateSasCredential(const char* sasCredential, char** memory)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
     STRING_HANDLE handle = NULL;
     if (memory == NULL || sasCredential == NULL)
     {

@@ -32,9 +32,9 @@ extern ADUC_ClientHandle g_iotHubClientHandleForDeviceInfoComponent;
  * @param[out] componentContext Optional context object to use in related calls.
  * @param argc Count of arguments in @p argv
  * @param argv Command line parameters.
- * @return bool True on success.
+ * @return _Bool True on success.
  */
-bool DeviceInfoInterface_Create(void** componentContext, int argc, char** argv);
+_Bool DeviceInfoInterface_Create(void** componentContext, int argc, char** argv);
 
 /**
  * @brief Called after connected to IoTHub (device client handler is valid).

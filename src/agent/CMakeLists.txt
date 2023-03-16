@@ -90,7 +90,6 @@ target_link_libraries (
             aduc::extension_manager
             aduc::extension_utils
             aduc::https_proxy_utils
-            aduc::iothub_communication_manager
             aduc::logging
             aduc::permission_utils
             aduc::pnp_helper
@@ -143,11 +142,11 @@ target_compile_definitions (
             DO_FILE_USER="${DO_FILE_USER}"
             SYSLOG_FILE_GROUP="${SYSLOG_FILE_GROUP}")
 
-if (ADUC_PLATFORM_LAYER STREQUAL "linux")
+if (ADUC_PLATFORM_LAYER STREQUAL "simulator")
+    target_compile_definitions (${target_name} PRIVATE ADUC_PLATFORM_SIMULATOR)
+else ()
     find_package (deliveryoptimization_sdk CONFIG REQUIRED)
     target_link_libraries (${target_name} PRIVATE Microsoft::deliveryoptimization)
-else ()
-    message (FATAL_ERROR "Invalid platform layer specified: ${ADUC_PLATFORM_LAYER}")
 endif ()
 
 target_link_libraries (${target_name} PRIVATE aduc::platform_layer)

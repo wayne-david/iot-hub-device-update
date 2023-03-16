@@ -45,14 +45,14 @@ ADUC_ClientHandle g_iotHubClientHandleForDiagnosticsComponent = NULL;
  * @param componentContext Context object to use for related calls.
  * @param argc Count of arguments in @p argv
  * @param argv Command line parameters.
- * @return bool True on success.
+ * @return _Bool True on success.
  */
-bool DiagnosticsInterface_Create(void** componentContext, int argc, char** argv)
+_Bool DiagnosticsInterface_Create(void** componentContext, int argc, char** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    bool succeeded = false;
+    _Bool succeeded = false;
 
     *componentContext = NULL;
 
@@ -130,9 +130,9 @@ static void OnDiagnosticsD2CMessageCompleted(void* context, ADUC_D2C_Message_Sta
  * @param jsonString message to send to the iothub
  * @returns True if success.
  */
-static bool SendPnPMessageToIotHub(ADUC_ClientHandle clientHandle, const char* jsonString)
+static _Bool SendPnPMessageToIotHub(ADUC_ClientHandle clientHandle, const char* jsonString)
 {
-    bool success = false;
+    _Bool success = false;
     // Reporting just a message
     STRING_HANDLE jsonToSend = PnP_CreateReportedProperty(
         g_diagnosticsPnPComponentName, g_diagnosticsPnPComponentAgentPropertyName, jsonString);
@@ -172,11 +172,11 @@ done:
  * @param propertyVersion value for the version to send up to the iothub
  * @returns True if success.
  */
-static bool SendPnPMessageToIotHubWithStatus(
+static _Bool SendPnPMessageToIotHubWithStatus(
     ADUC_ClientHandle clientHandle, const char* jsonString, int status, int propertyVersion)
 {
     STRING_HANDLE jsonToSend = NULL;
-    bool success = false;
+    _Bool success = false;
 
     if (g_iotHubClientHandleForDiagnosticsComponent == NULL)
     {
@@ -277,7 +277,7 @@ void DiagnosticsInterface_PropertyUpdateCallback(
  */
 void DiagnosticsInterface_ReportStateAndResultAsync(const Diagnostics_Result result, const char* operationId)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
 
     Log_Info(
         "DiagnosticsInterface_ReportStateAndResultAsync Reporting result: %s", DiagnosticsResult_ToString(result));

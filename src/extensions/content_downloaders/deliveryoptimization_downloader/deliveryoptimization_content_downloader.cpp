@@ -22,7 +22,6 @@
 
 #include <do_config.h>
 #include <do_download.h>
-#include <do_exceptions.h>
 
 namespace MSDO = microsoft::deliveryoptimization;
 
@@ -57,24 +56,23 @@ ADUC_Result do_download(
         entity->DownloadUri,
         fullFilePath.str().c_str());
 
-    try
+    const std::error_code doErrorCode = MSDO::download::download_url_to_path(
+        entity->DownloadUri, fullFilePath.str(), false, std::chrono::seconds(retryTimeout));
+    if (!doErrorCode)
     {
-        MSDO::download::download_url_to_path(
-            entity->DownloadUri, fullFilePath.str(), false, std::chrono::seconds(retryTimeout));
-
         resultCode = ADUC_Result_Download_Success;
+        extendedResultCode = 0;
     }
-    catch (const MSDO::exception& e)
+    else
     {
-        const int32_t doErrorCode = e.error_code();
         // Note: The call to download_url_to_path() does not make use of a cancellation token,
         // so the download can only timeout or hit a fatal error.
-        Log_Error("DO error, msg: %s, code: %#08x, timeout? %d", e.what(), doErrorCode,doErrorCode);
+        Log_Error("DO error, msg: %s, code: %#08x, timeout? %d", doErrorCode.message().c_str(), doErrorCode.value(),
+            (doErrorCode == std::errc::timed_out));
 
         resultCode = ADUC_Result_Failure;
-        extendedResultCode = MAKE_ADUC_DELIVERY_OPTIMIZATION_EXTENDEDRESULTCODE(doErrorCode);
+        extendedResultCode = MAKE_ADUC_DELIVERY_OPTIMIZATION_EXTENDEDRESULTCODE(doErrorCode.value());
     }
-
 
     // If we downloaded successfully, validate the file hash.
     if (resultCode == ADUC_Result_Download_Success)

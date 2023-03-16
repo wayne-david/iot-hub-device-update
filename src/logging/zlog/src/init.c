@@ -6,7 +6,6 @@
  * Licensed under the MIT License.
  */
 #include "aduc/logging.h"
-#include "aduc/system_utils.h"
 #include <stdio.h> // printf
 #include <sys/stat.h> // mkdir
 
@@ -52,7 +51,7 @@ ADUC_LOG_SEVERITY ZLogLevelToAducLogSeverity(enum ZLOG_SEVERITY logLevel)
         return ADUC_LOG_WARN;
 
     default:
-        return ADUC_LOG_ERROR;
+        return ZLOG_ERROR;
     }
 }
 
@@ -66,19 +65,9 @@ void ADUC_Logging_Init(ADUC_LOG_SEVERITY logLevel, const char* filePrefix)
 {
     g_logLevel = ADUC_LOG_INFO;
 
-    // zlog_init doesn't create the log path, so attempt to create it here if it does not exist.
+    // zlog_init doesn't create the log path, so attempt to create it here.
     // If it can't be created, zlogging will send output to console.
-    struct stat st;
-    if (stat(ADUC_LOG_FOLDER, &st) != 0)
-    {
-        // NOTE: permissions must match those in CheckLogDir in health_management.c
-        if (ADUC_SystemUtils_MkDirRecursive(
-                ADUC_LOG_FOLDER, -1 /*userId*/, -1 /*groupId*/, S_IRWXU | S_IRGRP | S_IXGRP)
-            != 0)
-        {
-            printf("WARNING: Cannot create a folder for logging file. ('%s')", ADUC_LOG_FOLDER);
-        }
-    }
+    (void)mkdir(ADUC_LOG_FOLDER, S_IRWXU);
 
     if (zlog_init(
             ADUC_LOG_FOLDER,

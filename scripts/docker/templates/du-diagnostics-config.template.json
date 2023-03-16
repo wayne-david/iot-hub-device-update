@@ -1,9 +1,0 @@
-{
-    "logComponents":[
-        {
-            "componentName":"adu",
-            "logPath":"/var/log/adu/"
-        }
-    ],
-    "maxKilobytesToUploadPerLogPath":50
-}

@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-//bool PermissionUtils_VerifyFilemodeBits(const char* path, mode_t expectedPermissions, bool isExactMatch);
+//_Bool PermissionUtils_VerifyFilemodeBits(const char* path, mode_t expectedPermissions, _Bool isExactMatch);
 TEST_CASE("PermissionUtils_VerifyFilemodeBit*")
 {
     const mode_t file_permissions = S_ISUID | S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IWOTH; // 04752

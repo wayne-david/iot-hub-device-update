@@ -1,7 +1,5 @@
-add_subdirectory (content_downloaders)
-add_subdirectory (component_enumerators/examples/contoso_component_enumerator)
-add_subdirectory (download_handlers)
+set (ADUC_EXTENSION_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+
 add_subdirectory (extension_manager)
-add_subdirectory (step_handlers)
-add_subdirectory (update_manifest_handlers)
-add_subdirectory (shared_lib)
+add_subdirectory (content-downloaders)
+add_subdirectory (component-enumerators/examples/contoso-component-enumerator)

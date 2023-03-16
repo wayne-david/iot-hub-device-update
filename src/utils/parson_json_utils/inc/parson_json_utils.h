@@ -11,7 +11,6 @@
 
 #include <aduc/c_utils.h>
 #include <parson.h>
-#include <stdbool.h>
 
 EXTERN_C_BEGIN
 
@@ -20,16 +19,16 @@ EXTERN_C_BEGIN
 //
 const char* ADUC_JSON_GetStringFieldPtr(const JSON_Value* jsonValue, const char* jsonFieldName);
 
-bool ADUC_JSON_GetStringField(const JSON_Value* jsonValue, const char* jsonFieldName, char** value);
+_Bool ADUC_JSON_GetStringField(const JSON_Value* jsonValue, const char* jsonFieldName, char** value);
 
-bool ADUC_JSON_GetBooleanField(const JSON_Value* jsonValue, const char* jsonFieldName);
+_Bool ADUC_JSON_GetBooleanField(const JSON_Value* jsonValue, const char* jsonFieldName);
 
-bool ADUC_JSON_GetUnsignedIntegerField(const JSON_Value* jsonValue, const char* jsonFieldName, unsigned int* value);
+_Bool ADUC_JSON_GetUnsignedIntegerField(const JSON_Value* jsonValue, const char* jsonFieldName, unsigned int* value);
 
 //
 // JSON_Object Helper Utils
 //
-bool ADUC_JSON_GetStringFieldFromObj(const JSON_Object* jsonObj, const char* jsonFieldName, char** value);
+_Bool ADUC_JSON_GetStringFieldFromObj(const JSON_Object* jsonObj, const char* jsonFieldName, char** value);
 
 EXTERN_C_END
 

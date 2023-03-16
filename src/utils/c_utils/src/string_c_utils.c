@@ -34,9 +34,9 @@
  * @param valueLen Size of buffer for @p value
  * @return true if value found, false otherwise.
  */
-bool ReadDelimitedValueFromFile(const char* fileName, const char* key, char* value, unsigned int valueLen)
+_Bool ReadDelimitedValueFromFile(const char* fileName, const char* key, char* value, unsigned int valueLen)
 {
-    bool foundKey = false;
+    _Bool foundKey = false;
     const unsigned int bufferLen = 1024;
     char buffer[bufferLen];
 
@@ -95,14 +95,14 @@ bool ReadDelimitedValueFromFile(const char* fileName, const char* key, char* val
  * @param strBuffSize the size of the buffer
  * @returns false on failure, true on success
  */
-bool LoadBufferWithFileContents(const char* filePath, char* strBuffer, const size_t strBuffSize)
+_Bool LoadBufferWithFileContents(const char* filePath, char* strBuffer, const size_t strBuffSize)
 {
     if (filePath == NULL || strBuffer == NULL || strBuffSize == 0)
     {
         return false;
     }
 
-    bool success = false;
+    _Bool success = false;
 
     // NOLINTNEXTLINE(android-cloexec-open): We are not guaranteed to have access to O_CLOEXEC on all of our builds so no need to include
     int fd = open(filePath, O_EXCL | O_RDONLY);
@@ -203,7 +203,7 @@ char* ADUC_StringUtils_Trim(char* str)
  * @param[in] string that needs to be converted
  * @param[out] converted unsigned long
  */
-bool atoul(const char* str, unsigned long* converted)
+_Bool atoul(const char* str, unsigned long* converted)
 {
     if (IsNullOrEmpty(str))
     {
@@ -242,7 +242,7 @@ bool atoul(const char* str, unsigned long* converted)
  * @param[in] string that needs to be converted
  * @param[out] converted integer
  */
-bool atoui(const char* str, unsigned int* ui)
+_Bool atoui(const char* str, unsigned int* ui)
 {
     if (IsNullOrEmpty(str))
     {
@@ -304,9 +304,9 @@ size_t ADUC_StrNLen(const char* str, size_t maxsize)
  * @param[out] updateTypeName - Caller must call free()
  * @param[out] updateTypeVersion
  */
-bool ADUC_ParseUpdateType(const char* updateType, char** updateTypeName, unsigned int* updateTypeVersion)
+_Bool ADUC_ParseUpdateType(const char* updateType, char** updateTypeName, unsigned int* updateTypeVersion)
 {
-    bool succeeded = false;
+    _Bool succeeded = false;
     char* name = NULL;
     *updateTypeName = NULL;
     *updateTypeVersion = 0;
@@ -407,39 +407,7 @@ char* ADUC_StringFormat(const char* fmt, ...)
  * @param str A string to check.
  * @return Returns true if @p str is NULL or empty.
  */
-bool IsNullOrEmpty(const char* str)
+_Bool IsNullOrEmpty(const char* str)
 {
     return str == NULL || *str == '\0';
-}
-
-/**
- * @brief Allocates memory for @p target and copy @p len characters of @p source into @p target buffer.
- *
- * @param[out] target Output string
- * @param source Source string
- * @param len Length of string to copy.
- * @return bool Returns true is success.
- */
-bool MallocAndSubstr(char** target, char* source, size_t len)
-{
-    if (target == NULL || source == NULL)
-    {
-        return false;
-    }
-    *target = NULL;
-
-    char* t = malloc((len + 1) * sizeof(*t));
-    if (t == NULL)
-    {
-        return false;
-    }
-    memset(t, 0, (len + 1) * sizeof(*t));
-    if (strncpy(t, source, len) != t)
-    {
-        free(t);
-        return false;
-    }
-
-    *target = t;
-    return true;
 }

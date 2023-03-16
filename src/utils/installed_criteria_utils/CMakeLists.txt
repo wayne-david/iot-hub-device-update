@@ -15,10 +15,16 @@ find_package (Parson REQUIRED)
 target_compile_definitions (
     ${PROJECT_NAME} PRIVATE ADUC_INSTALLEDCRITERIA_FILE_PATH="${ADUC_INSTALLEDCRITERIA_FILE_PATH}")
 
-target_include_directories (${PROJECT_NAME} PUBLIC inc ${ADUC_EXPORT_INCLUDES})
+target_include_directories (${PROJECT_NAME} PUBLIC inc 
+                ${ADUC_EXPORT_INCLUDES} )
 
-target_link_libraries (${PROJECT_NAME} PRIVATE aduc::adu_core_interface aduc::logging
-                                               Parson::parson)
+target_link_libraries (${PROJECT_NAME}
+        PRIVATE aduc::logging 
+                aduc::c_utils 
+                aduc::string_utils
+                Parson::parson
+                )
+
 
 if (ADUC_BUILD_UNIT_TESTS)
     add_subdirectory (tests)

@@ -160,7 +160,7 @@ done:
  */
 char* Base64URLDecodeToString(const char* base64_encoded_blob)
 {
-    bool success = false;
+    _Bool success = false;
 
     char* blobStr = NULL;
 

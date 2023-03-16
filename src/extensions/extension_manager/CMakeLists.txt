@@ -2,10 +2,8 @@ cmake_minimum_required (VERSION 3.5)
 
 project (extension_manager)
 
-add_library (${PROJECT_NAME} STATIC)
+add_library (${PROJECT_NAME} STATIC src/extension_manager.cpp)
 add_library (aduc::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
-target_sources (${PROJECT_NAME} PRIVATE src/extension_manager.cpp src/extension_manager_helper.cpp)
 
 target_include_directories (${PROJECT_NAME} PUBLIC inc ${ADUC_EXPORT_INCLUDES}
                                                    ${ADU_EXTENSION_INCLUDES})
@@ -29,22 +27,19 @@ target_compile_definitions (
 #
 target_link_libraries (
     ${PROJECT_NAME}
-    PUBLIC aduc::adu_types # download.h, update_content.h, and workflow.h used by header and impl
+    PUBLIC aduc::extension_utils
     PRIVATE aduc::c_utils
-            aduc::contract_utils
-            aduc::download_handler_factory
-            aduc::download_handler_plugin
+            aduc::content_handlers
             aduc::exception_utils
-            aduc::extension_utils
-            aduc::hash_utils
-            aduc::logging
-            aduc::parser_utils
-            aduc::path_utils
             aduc::string_utils
-            aduc::workflow_utils
+            aduc::logging
             ${CMAKE_DL_LIBS})
 
 #
 # Turn -fPIC on, in order to use this library in another shared library.
 #
 set_property (TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+if (${ADUC_PLATFORM_LAYER} STREQUAL "simulator")
+    target_compile_definitions (${PROJECT_NAME} PUBLIC ADUC_SIMULATOR_MODE=1)
+endif ()

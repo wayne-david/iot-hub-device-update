@@ -16,6 +16,7 @@
 #include "aduc/logging.h"
 #include "aduc/process_utils.hpp"
 #include "aduc/string_utils.hpp"
+#include "aduc/system_utils.h"
 
 #include "adushell.hpp"
 #include "adushell_const.hpp"
@@ -30,7 +31,7 @@ namespace AptGetTasks = Adu::Shell::Tasks::AptGet;
 #endif
 
 #ifdef ADUSHELL_SCRIPT
-#    include "script_tasks.hpp"
+#   include "script_tasks.hpp"
 namespace ScriptTasks = Adu::Shell::Tasks::Script;
 #endif
 

@@ -16,7 +16,7 @@ target_include_directories (${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inc
 
 find_package (Threads REQUIRED)
 
-target_link_libraries (${PROJECT_NAME} PRIVATE Threads::Threads aduc::system_utils)
+target_link_libraries (${PROJECT_NAME} PRIVATE Threads::Threads)
 
 # _DEAFULT_SOURCE - Needed so DT_REG is defined in dirent.h
 #                   see man page for readdir

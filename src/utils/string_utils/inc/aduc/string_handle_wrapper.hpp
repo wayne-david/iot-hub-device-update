@@ -31,7 +31,7 @@ struct STRING_HANDLE_wrapper
 
     ~STRING_HANDLE_wrapper()
     {
-        delete_handle();
+        STRING_delete(h);
     }
 
     STRING_HANDLE_wrapper(STRING_HANDLE_wrapper const&) = delete;
@@ -45,18 +45,6 @@ struct STRING_HANDLE_wrapper
     STRING_HANDLE get()
     {
         return h;
-    }
-
-    /**
-     * @brief Get the address of the wrapped object.
-     * Useful for passing to methods with the signature "f([out] STRING_HANDLE* pp)"
-     *
-     * @return STRING_HANDLE* Address of wrapped object.
-     */
-    STRING_HANDLE* address_of()
-    {
-        delete_handle();
-        return &h;
     }
 
     /**
@@ -83,12 +71,6 @@ struct STRING_HANDLE_wrapper
     }
 
 private:
-    void delete_handle()
-    {
-        STRING_delete(h);
-        h = nullptr;
-    }
-
     STRING_HANDLE h;
 };
 } // namespace StringUtils

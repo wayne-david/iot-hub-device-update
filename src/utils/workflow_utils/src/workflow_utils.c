@@ -7,7 +7,7 @@
  */
 #include "aduc/workflow_utils.h"
 #include "aduc/adu_types.h"
-#include "aduc/aduc_inode.h" // ADUC_INODE_SENTINEL_VALUE
+#include "aduc/c_utils.h"
 #include "aduc/extension_manager.h"
 #include "aduc/hash_utils.h"
 #include "aduc/logging.h"
@@ -19,13 +19,12 @@
 #include "aduc/types/workflow.h"
 #include "aduc/workflow_internal.h"
 #include "jws_utils.h"
-#include <aduc/c_utils.h>
 
 #include <azure_c_shared_utility/crt_abstractions.h> // for mallocAndStrcpy_s
 #include <azure_c_shared_utility/strings.h> // for STRING_*
 #include <parson.h>
 #include <stdarg.h> // for va_*
-#include <stdlib.h> // for malloc, atoi
+#include <stdlib.h> // for calloc, atoi
 #include <string.h>
 #include <strings.h> // for strcasecmp
 
@@ -46,7 +45,7 @@
 #define WORKFLOW_PROPERTY_FIELD_SELECTED_COMPONENTS "_selectedComponents"
 
 // V4 and later.
-#define DEFAULT_STEP_TYPE "reference"
+#define DEAULT_STEP_TYPE "reference"
 #define WORKFLOW_PROPERTY_FIELD_INSTRUCTIONS_DOT_STEPS "instructions.steps"
 #define UPDATE_MANIFEST_PROPERTY_FIELD_DETACHED_MANIFEST_FILE_ID "detachedManifestFileId"
 #define STEP_PROPERTY_FIELD_DETACHED_MANIFEST_FILE_ID UPDATE_MANIFEST_PROPERTY_FIELD_DETACHED_MANIFEST_FILE_ID
@@ -62,570 +61,13 @@
  */
 #define WORKFLOW_RESULT_DETAILS_MAX_LENGTH 1024
 
+#define SUPPORTED_UPDATE_MANIFEST_VERSION 4
+
 EXTERN_C_BEGIN
-
-/* external linkage */
-extern ExtensionManager_Download_Options Default_ExtensionManager_Download_Options;
-
-// forward decls
-const JSON_Object* _workflow_get_fileurls_map(ADUC_WorkflowHandle handle);
 
 //
 // Private functions - this is an adapter for the underlying ADUC_Workflow object.
 //
-
-/**
- * @brief Frees an ADUC_Property object.
- * @param property The property to be freed.
- */
-static void ADUC_Property_UnInit(ADUC_Property* property)
-{
-    if (property == NULL)
-    {
-        return;
-    }
-
-    free(property->Name);
-    property->Name = NULL;
-
-    free(property->Value);
-    property->Value = NULL;
-}
-
-/**
- * @brief Allocates the memory for the ADUC_Property struct member values
- * @param outProperty A pointer to an ADUC_Property struct whose member values will be allocated
- * @param name The property name
- * @param value The property value
- * @returns True if successfully allocated, False if failure
- */
-static bool ADUC_Property_Init(ADUC_Property* outProperty, const char* name, const char* value)
-{
-    bool success = false;
-
-    if (outProperty == NULL)
-    {
-        return false;
-    }
-
-    if (name == NULL || value == NULL)
-    {
-        return false;
-    }
-
-    outProperty->Name = NULL;
-    outProperty->Value = NULL;
-
-    if (mallocAndStrcpy_s(&(outProperty->Name), name) != 0)
-    {
-        goto done;
-    }
-
-    if (mallocAndStrcpy_s(&(outProperty->Value), value) != 0)
-    {
-        goto done;
-    }
-
-    success = true;
-
-done:
-
-    if (!success)
-    {
-        ADUC_Property_UnInit(outProperty);
-    }
-
-    return success;
-}
-
-/**
- * @brief Frees an array of ADUC_Property of size @p propertiesCount
- * @param propertiesCount the size of @p propertiesArray
- * @param propertiesArray a pointer to an array of ADUC_Property structs
- */
-static void ADUC_Properties_FreeArray(size_t propertiesCount, ADUC_Property* propertiesArray)
-{
-    for (size_t i = 0; i < propertiesCount; ++i)
-    {
-        ADUC_Property_UnInit(&propertiesArray[i]);
-    }
-
-    free(propertiesArray);
-}
-
-/**
- * @brief Allocates memory and populate with ADUC_Property object from a Parson JSON_Object.
- *
- * Caller MUST assume that this method allocates the memory for the returned ADUC_Property pointer.
- *
- * @param propertiesObj JSON Object that contains the properties to be returned.
- * @param propertiesCount A size_t* where the count of output properties will be stored.
- * @returns If success, a pointer to an array of ADUC_Property object. Otherwise, returns NULL.
- *  Caller must call ADUC_FileEntityArray_Free() to free the array.
- */
-ADUC_Property* ADUC_PropertiesArray_AllocAndInit(const JSON_Object* propertiesObj, size_t* propertiesCount)
-{
-    ADUC_Property* tempPropertyArray = NULL;
-
-    if (propertiesCount == NULL || propertiesObj == NULL)
-    {
-        return NULL;
-    }
-    *propertiesCount = 0;
-
-    size_t tempPropertyCount = json_object_get_count(propertiesObj);
-
-    if (tempPropertyCount == 0)
-    {
-        Log_Error("No properties");
-        goto done;
-    }
-
-    tempPropertyArray = calloc(tempPropertyCount, sizeof(*tempPropertyArray));
-
-    if (tempPropertyArray == NULL)
-    {
-        goto done;
-    }
-
-    for (size_t properties_index = 0; properties_index < tempPropertyCount; ++properties_index)
-    {
-        ADUC_Property* currProperty = tempPropertyArray + properties_index;
-
-        const char* propertiesName = json_object_get_name(propertiesObj, properties_index);
-        const char* propertiesValue = json_value_get_string(json_object_get_value_at(propertiesObj, properties_index));
-        if (!ADUC_Property_Init(currProperty, propertiesName, propertiesValue))
-        {
-            goto done;
-        }
-    }
-
-    *propertiesCount = tempPropertyCount;
-
-done:
-
-    if (*propertiesCount == 0 && tempPropertyCount > 0)
-    {
-        ADUC_Properties_FreeArray(tempPropertyCount, tempPropertyArray);
-        tempPropertyArray = NULL;
-    }
-
-    return tempPropertyArray;
-}
-
-/**
- * @brief Free the ADUC_RelatedFile struct members
- * @param hash a pointer to an ADUC_RelatedFile
- */
-static void ADUC_RelatedFile_UnInit(ADUC_RelatedFile* relatedFile)
-{
-    free(relatedFile->FileId);
-    relatedFile->FileId = NULL;
-
-    free(relatedFile->DownloadUri);
-    relatedFile->DownloadUri = NULL;
-
-    free(relatedFile->FileName);
-    relatedFile->FileName = NULL;
-
-    ADUC_Hash_FreeArray(relatedFile->HashCount, relatedFile->Hash);
-    relatedFile->HashCount = 0;
-    relatedFile->Hash = NULL;
-
-    ADUC_Properties_FreeArray(relatedFile->PropertiesCount, relatedFile->Properties);
-    relatedFile->PropertiesCount = 0;
-    relatedFile->Properties = NULL;
-}
-
-static bool ADUC_RelatedFile_Init(
-    ADUC_RelatedFile* relatedFile,
-    const char* fileId,
-    const char* downloadUri,
-    const char* fileName,
-    size_t hashCount,
-    ADUC_Hash* hashes,
-    size_t propertiesCount,
-    ADUC_Property* properties)
-{
-    bool success = false;
-    ADUC_Property* tempPropertiesArray = NULL;
-
-    if (relatedFile == NULL || fileId == NULL || downloadUri == NULL || fileName == NULL || hashes == NULL
-        || properties == NULL)
-    {
-        return false;
-    }
-
-    relatedFile->HashCount = hashCount;
-    ADUC_Hash* tempHashArray = calloc(hashCount, sizeof(*tempHashArray));
-    if (tempHashArray == NULL)
-    {
-        goto done;
-    }
-
-    for (int i = 0; i < hashCount; ++i)
-    {
-        if (!ADUC_Hash_Init(&tempHashArray[i], hashes[i].value, hashes[i].type))
-        {
-            goto done;
-        }
-    }
-
-    relatedFile->PropertiesCount = propertiesCount;
-    tempPropertiesArray = (ADUC_Property*)malloc(propertiesCount * sizeof(ADUC_Property));
-    if (tempPropertiesArray == NULL)
-    {
-        goto done;
-    }
-
-    for (int i = 0; i < propertiesCount; ++i)
-    {
-        if (!ADUC_Property_Init(&tempPropertiesArray[i], properties[i].Name, properties[i].Value))
-        {
-            goto done;
-        }
-    }
-
-    if (mallocAndStrcpy_s(&(relatedFile->FileId), fileId) != 0)
-    {
-        goto done;
-    }
-
-    if (mallocAndStrcpy_s(&(relatedFile->DownloadUri), downloadUri) != 0)
-    {
-        goto done;
-    }
-
-    if (mallocAndStrcpy_s(&(relatedFile->FileName), fileName) != 0)
-    {
-        goto done;
-    }
-
-    // transfer ownership
-    relatedFile->HashCount = hashCount;
-    relatedFile->Hash = tempHashArray;
-    tempHashArray = NULL;
-
-    relatedFile->PropertiesCount = propertiesCount;
-    relatedFile->Properties = tempPropertiesArray;
-    tempPropertiesArray = NULL;
-
-    success = true;
-
-done:
-
-    if (!success)
-    {
-        if (tempHashArray != NULL)
-        {
-            ADUC_Hash_FreeArray(hashCount, tempHashArray);
-            tempHashArray = NULL;
-        }
-
-        if (tempPropertiesArray != NULL)
-        {
-            ADUC_Properties_FreeArray(propertiesCount, tempPropertiesArray);
-            tempPropertiesArray = NULL;
-        }
-
-        // do not call ADUC_RelatedFile_UnInit(relatedFile) here as it will
-        // get cleaned up by caller for the failure.
-    }
-
-    return success;
-}
-
-static void _workflow_free_update_file_inodes(ADUC_Workflow* wf)
-{
-    if (wf != NULL)
-    {
-        free(wf->UpdateFileInodes);
-        wf->UpdateFileInodes = NULL;
-    }
-}
-
-static bool workflow_init_update_file_inodes(ADUC_Workflow* wf)
-{
-    if (wf == NULL || wf->UpdateFileInodes != NULL)
-    {
-        return false;
-    }
-
-    size_t count = workflow_get_update_files_count((ADUC_WorkflowHandle)wf);
-    if (count == 0)
-    {
-        return false;
-    }
-
-    if ((wf->UpdateFileInodes = (ino_t*)malloc(sizeof(ino_t) * count)) == NULL)
-    {
-        return false;
-    }
-
-    for (int i = 0; i < count; ++i)
-    {
-        wf->UpdateFileInodes[i] = ADUC_INODE_SENTINEL_VALUE;
-    }
-
-    return true;
-}
-
-/**
- * @brief Frees an array of ADUC_RelatedFile of size @p relatedFileCount
- * @param relatedFileCount the size of @p relatedFileArray
- * @param relatedFileArray a pointer to an array of ADUC_RelatedFile structs
- */
-void ADUC_RelatedFile_FreeArray(size_t relatedFileCount, ADUC_RelatedFile* relatedFileArray)
-{
-    if (relatedFileArray == NULL || relatedFileCount == 0)
-    {
-        return;
-    }
-
-    for (size_t relatedFile_index = 0; relatedFile_index < relatedFileCount; ++relatedFile_index)
-    {
-        ADUC_RelatedFile* relatedFileEntity = relatedFileArray + relatedFile_index;
-        ADUC_RelatedFile_UnInit(relatedFileEntity);
-    }
-    free(relatedFileArray);
-}
-
-/**
- * @brief Allocates memory and populate with ADUC_RelatedFile object from a Parson JSON_Object.
- *
- * Caller MUST assume that this method allocates the memory for the returned ADUC_RelatedFile pointer.
- *
- * @param handle The workflow handle.
- * @param relatedFileObj JSON Object that contains the relatedFiles to be returned.
- * @param relatedFileCount A size_t* where the count of output relatedFiles will be stored.
- * @returns If success, a pointer to an array of ADUC_RelatedFile object. Otherwise, returns NULL.
- * @details Caller must call ADUC_RelatedFileArray_Free() to free the array. On error, this function
- * will set extendedResultCode
- */
-ADUC_RelatedFile* ADUC_RelatedFileArray_AllocAndInit(
-    ADUC_WorkflowHandle handle, const JSON_Object* relatedFileObj, size_t* relatedFileCount)
-{
-    bool success = false;
-
-    ADUC_RelatedFile* tempRelatedFileArray = NULL;
-    const JSON_Object* fileUrls = NULL;
-
-    if (relatedFileObj == NULL || relatedFileCount == NULL)
-    {
-        return false;
-    }
-    *relatedFileCount = 0;
-
-    size_t tempRelatedFileCount = json_object_get_count(relatedFileObj);
-
-    if (tempRelatedFileCount == 0)
-    {
-        Log_Error("No relatedFiles.");
-        goto done;
-    }
-
-    tempRelatedFileArray = calloc(tempRelatedFileCount, sizeof(*tempRelatedFileArray));
-
-    if (tempRelatedFileArray == NULL)
-    {
-        goto done;
-    }
-
-    for (size_t relatedFile_index = 0; relatedFile_index < tempRelatedFileCount; ++relatedFile_index)
-    {
-        const char* fileName = NULL;
-        const char* uri = NULL;
-        size_t hashCount = 0;
-        ADUC_Hash* tempHashes = NULL;
-        size_t propertiesCount = 0;
-        ADUC_Property* tempProperties = NULL;
-
-        ADUC_RelatedFile* currentRelatedFile = tempRelatedFileArray + relatedFile_index;
-
-        JSON_Object* relatedFileValueObj =
-            json_value_get_object(json_object_get_value_at(relatedFileObj, relatedFile_index));
-        if (relatedFileValueObj == NULL)
-        {
-            Log_Error("no relatedFile");
-            goto done;
-        }
-
-        // fileId
-        const char* fileId = json_object_get_name(relatedFileObj, relatedFile_index);
-        if (IsNullOrEmpty(fileId))
-        {
-            Log_Error("empty file id at %d", relatedFile_index);
-            goto done;
-        }
-
-        // downloadUri
-        ADUC_WorkflowHandle h = handle;
-        do
-        {
-            if ((fileUrls = _workflow_get_fileurls_map(h)) != NULL)
-            {
-                uri = json_object_get_string(fileUrls, fileId);
-            }
-            h = workflow_get_parent(h);
-        } while (uri == NULL && h != NULL);
-
-        if (uri == NULL)
-        {
-            Log_Error("Cannot find URL for fileId '%s'", fileId);
-            goto done;
-        }
-
-        // fileName
-        fileName = json_object_get_string(relatedFileValueObj, "fileName");
-
-        // hashes
-        {
-            JSON_Object* hashesObj = json_object_get_object(relatedFileValueObj, "hashes");
-            if (hashesObj == NULL)
-            {
-                Log_Error("'hashes' missing at %d", relatedFile_index);
-                goto done;
-            }
-
-            tempHashes = ADUC_HashArray_AllocAndInit(hashesObj, &hashCount);
-            if (tempHashes == NULL)
-            {
-                goto done;
-            }
-        }
-
-        // properties
-        {
-            JSON_Object* propertiesObj = json_object_get_object(relatedFileValueObj, "properties");
-            if (propertiesObj == NULL)
-            {
-                Log_Error("'properties' missing at %d", relatedFile_index);
-                goto done;
-            }
-
-            tempProperties = ADUC_PropertiesArray_AllocAndInit(propertiesObj, &propertiesCount);
-            if (tempProperties == NULL)
-            {
-                goto done;
-            }
-        }
-
-        if (!ADUC_RelatedFile_Init(
-                currentRelatedFile, fileId, uri, fileName, hashCount, tempHashes, propertiesCount, tempProperties))
-        {
-            goto done;
-        }
-    }
-
-    *relatedFileCount = tempRelatedFileCount;
-
-    success = true;
-
-done:
-
-    if (!success)
-    {
-        ADUC_RelatedFile_FreeArray(tempRelatedFileCount, tempRelatedFileArray);
-        tempRelatedFileArray = NULL;
-    }
-
-    return tempRelatedFileArray;
-}
-
-/**
- * @brief Parses the related files and assigns the relevant fields on the given ADUC_FileEntity.
- *
- * @param handle The workflow handle.
- * @param file the json object parsed from a file entry in the update metadata.
- * @param entity the file entity.
- * @returns true for success.
- */
-static bool ParseFileEntityRelatedFiles(ADUC_WorkflowHandle handle, const JSON_Object* file, ADUC_FileEntity* entity)
-{
-    bool success = false;
-
-    const JSON_Object* relatedFilesObj = json_object_get_object(file, ADUCITF_FIELDNAME_RELATEDFILES);
-    if (relatedFilesObj == NULL)
-    {
-        // it's not necessarily an error if there are no related files for the file entity as one can
-        // have a download handler that does not use/process related files.
-        return true;
-    }
-
-    size_t tempRelatedFilesCount = 0;
-    ADUC_RelatedFile* tempRelatedFiles =
-        ADUC_RelatedFileArray_AllocAndInit(handle, relatedFilesObj, &tempRelatedFilesCount);
-    if (tempRelatedFiles == NULL)
-    {
-        goto done;
-    }
-
-    entity->RelatedFileCount = tempRelatedFilesCount;
-    entity->RelatedFiles = tempRelatedFiles;
-    tempRelatedFiles = NULL;
-    tempRelatedFilesCount = 0;
-
-    success = true;
-
-done:
-
-    if (tempRelatedFilesCount > 0 && tempRelatedFiles != NULL)
-    {
-        ADUC_RelatedFile_FreeArray(tempRelatedFilesCount, tempRelatedFiles);
-    }
-
-    return success;
-}
-
-/**
- * @brief Parses the downloadHandlerId and related files for a file entry in the update metadata json.
- *
- * @param handle The workflow handle.
- * @param file the json object parsed from a file entry in the update metadata.
- * @param entity the file entity.
- * @returns true for success.
- */
-static bool
-ParseFileEntityDownloadHandler(ADUC_WorkflowHandle handle, const JSON_Object* file, ADUC_FileEntity* entity)
-{
-    bool success = false;
-    const char* downloadHandlerId = NULL;
-    const JSON_Object* downloadHandlerObj = NULL;
-
-    if (entity == NULL)
-    {
-        return false;
-    }
-
-    downloadHandlerObj = json_object_get_object(file, ADUCITF_FIELDNAME_DOWNLOADHANDLER);
-    if (downloadHandlerObj == NULL)
-    {
-        // it's ok not to have a download handler json object if there's none associated with the related file.
-        return true;
-    }
-
-    downloadHandlerId = json_object_get_string(downloadHandlerObj, ADUCITF_FIELDNAME_DOWNLOADHANDLER_ID);
-    if (IsNullOrEmpty(downloadHandlerId))
-    {
-        Log_Error("missing '%s' under '%s'", ADUCITF_FIELDNAME_DOWNLOADHANDLER_ID, ADUCITF_FIELDNAME_DOWNLOADHANDLER);
-        goto done;
-    }
-
-    if (mallocAndStrcpy_s(&(entity->DownloadHandlerId), downloadHandlerId) != 0)
-    {
-        goto done;
-    }
-
-    if (!ParseFileEntityRelatedFiles(handle, file, entity))
-    {
-        goto done;
-    }
-
-    success = true;
-done:
-
-    return success;
-}
 
 /**
  * @brief Deep copy string. Caller must call workflow_free_string() when done.
@@ -708,9 +150,9 @@ const char* _workflow_get_properties_retryTimestamp(ADUC_WorkflowHandle handle)
  * both the updateManifest and the updateManifestSignature
  * @returns true on success and false on failure
  */
-bool _Json_ValidateManifestHash(const JSON_Value* updateActionJson)
+_Bool _Json_ValidateManifestHash(const JSON_Value* updateActionJson)
 {
-    bool success = false;
+    _Bool success = false;
 
     JSON_Value* signatureValue = NULL;
     char* jwtPayload = NULL;
@@ -786,8 +228,7 @@ ADUC_Result _workflow_parse(bool isFile, const char* source, bool validateManife
     JSON_Value* updateActionJson = NULL;
     char* workFolder = NULL;
     STRING_HANDLE detachedUpdateManifestFilePath = NULL;
-    ADUC_FileEntity fileEntity;
-    memset(&fileEntity, 0, sizeof(fileEntity));
+    ADUC_FileEntity* fileEntity = NULL;
 
     if (handle == NULL)
     {
@@ -943,7 +384,11 @@ ADUC_Result _workflow_parse(bool isFile, const char* source, bool validateManife
 
             // Download the detached update manifest file.
             result = ExtensionManager_Download(
-                &fileEntity, handle, &Default_ExtensionManager_Download_Options, NULL /* downloadProgressCallback */);
+                fileEntity,
+                workflow_peek_id(handle_from_workflow(wf)),
+                workFolder,
+                (60 * 60 * 24) /* default : 24 hour */,
+                NULL /* downloadProgressCallback */);
             if (IsAducResultCodeFailure(result.ResultCode))
             {
                 workflow_set_result_details(
@@ -954,7 +399,7 @@ ADUC_Result _workflow_parse(bool isFile, const char* source, bool validateManife
             {
                 // Replace existing updateManifest with the one from detached update manifest file.
                 detachedUpdateManifestFilePath =
-                    STRING_construct_sprintf("%s/%s", workFolder, fileEntity.TargetFilename);
+                    STRING_construct_sprintf("%s/%s", workFolder, fileEntity->TargetFilename);
                 JSON_Object* rootObj =
                     json_value_get_object(json_parse_file(STRING_c_str(detachedUpdateManifestFilePath)));
                 const char* updateManifestString = json_object_get_string(rootObj, ADUCITF_FIELDNAME_UPDATEMANIFEST);
@@ -975,14 +420,12 @@ ADUC_Result _workflow_parse(bool isFile, const char* source, bool validateManife
 
         if (validateManifest)
         {
-            if (manifestVersion < SUPPORTED_UPDATE_MANIFEST_VERSION_MIN
-                || manifestVersion > SUPPORTED_UPDATE_MANIFEST_VERSION_MAX)
+            if (manifestVersion != SUPPORTED_UPDATE_MANIFEST_VERSION)
             {
                 Log_Error(
-                    "Bad update manifest version: %d. (min: %d, max: %d)",
+                    "Bad update manifest version: %d. Expected: %d",
                     manifestVersion,
-                    SUPPORTED_UPDATE_MANIFEST_VERSION_MIN,
-                    SUPPORTED_UPDATE_MANIFEST_VERSION_MAX);
+                    SUPPORTED_UPDATE_MANIFEST_VERSION);
                 result.ExtendedResultCode = ADUC_ERC_UTILITIES_UPDATE_DATA_PARSER_UNSUPPORTED_UPDATE_MANIFEST_VERSION;
                 goto done;
             }
@@ -994,7 +437,8 @@ ADUC_Result _workflow_parse(bool isFile, const char* source, bool validateManife
 
 done:
 
-    ADUC_FileEntity_Uninit(&fileEntity);
+    workflow_free_file_entity(fileEntity);
+    fileEntity = NULL;
 
     STRING_delete(detachedUpdateManifestFilePath);
 
@@ -1337,11 +781,9 @@ bool workflow_set_string_property(ADUC_WorkflowHandle handle, const char* proper
 
     if (value != NULL)
     {
-        Log_Debug("set prop '%s' to '%s'", property, value);
         return JSONSuccess == json_object_set_string(wf->PropertiesObject, property, value);
     }
 
-    Log_Debug("set prop '%s' to null", property);
     return JSONSuccess == json_object_set_null(wf->PropertiesObject, property);
 }
 
@@ -1469,7 +911,7 @@ bool workflow_set_sandbox(ADUC_WorkflowHandle handle, const char* sandbox)
 }
 
 // Workfolder =  [root.sandboxfolder]  "/"  ( [parent.workfolder | parent.id]  "/" )+  [handle.workfolder | handle.id]
-char* workflow_get_workfolder(const ADUC_WorkflowHandle handle)
+char* workflow_get_workfolder(ADUC_WorkflowHandle handle)
 {
     char dir[1024] = { 0 };
 
@@ -1481,8 +923,6 @@ char* workflow_get_workfolder(const ADUC_WorkflowHandle handle)
     char* wf = workflow_get_string_property(handle, WORKFLOW_PROPERTY_FIELD_WORKFOLDER);
     if (wf != NULL)
     {
-        Log_Debug("Property '%s' not NULL - returning cached workfolder '%s'", WORKFLOW_PROPERTY_FIELD_WORKFOLDER, wf);
-        free(id);
         return wf;
     }
 
@@ -1492,8 +932,6 @@ char* workflow_get_workfolder(const ADUC_WorkflowHandle handle)
     {
         pwf = workflow_get_workfolder(p);
         sprintf(dir, "%s/%s", pwf, id);
-
-        Log_Debug("Using parent workfolder: '%s/%s'", pwf, id);
     }
     else
     {
@@ -1733,7 +1171,7 @@ size_t workflow_get_update_files_count(ADUC_WorkflowHandle handle)
     return files == NULL ? 0 : json_object_get_count(files);
 }
 
-bool workflow_get_update_file(ADUC_WorkflowHandle handle, size_t index, ADUC_FileEntity* entity)
+bool workflow_get_update_file(ADUC_WorkflowHandle handle, size_t index, ADUC_FileEntity** entity)
 {
     if (entity == NULL)
     {
@@ -1746,10 +1184,12 @@ bool workflow_get_update_file(ADUC_WorkflowHandle handle, size_t index, ADUC_Fil
         return false;
     }
 
-    bool succeeded = false;
+    _Bool succeeded = false;
     const JSON_Object* files = NULL;
     const JSON_Object* file = NULL;
     const JSON_Object* fileUrls = NULL;
+    ADUC_FileEntity* newEntity = NULL;
+    *entity = NULL;
     const char* uri = NULL;
     const char* fileId = NULL;
     const char* name = NULL;
@@ -1784,7 +1224,6 @@ bool workflow_get_update_file(ADUC_WorkflowHandle handle, size_t index, ADUC_Fil
     if (uri == NULL)
     {
         Log_Error("Cannot find URL for fileId '%s'", fileId);
-        goto done;
     }
 
     name = json_object_get_string(file, ADUCITF_FIELDNAME_FILENAME);
@@ -1805,39 +1244,41 @@ bool workflow_get_update_file(ADUC_WorkflowHandle handle, size_t index, ADUC_Fil
         sizeInBytes = json_object_get_number(file, ADUCITF_FIELDNAME_SIZEINBYTES);
     }
 
-    if (!ADUC_FileEntity_Init(entity, fileId, name, uri, arguments, tempHash, tempHashCount, sizeInBytes))
+    newEntity = malloc(sizeof(*newEntity));
+    if (newEntity == NULL)
+    {
+        goto done;
+    }
+
+    if (!ADUC_FileEntity_Init(newEntity, fileId, name, uri, arguments, tempHash, tempHashCount, sizeInBytes))
     {
         Log_Error("Invalid file entity arguments");
         goto done;
     }
 
-    // ADUC_FileEntity_Init makes a deep copy of the hash so must free tempHash to avoid memory leak.
-    ADUC_Hash_FreeArray(tempHashCount, tempHash);
-    tempHash = NULL;
-
-    if (!ParseFileEntityDownloadHandler(handle, file, entity))
-    {
-        goto done;
-    }
-
+    *entity = newEntity;
     succeeded = true;
 
 done:
     if (!succeeded)
     {
-        entity->Hash = NULL; // Manually free hash array below that is pointed to by tempHash...
-        ADUC_FileEntity_Uninit(entity);
-    }
+        if (newEntity != NULL)
+        {
+            newEntity->Hash = NULL; // Manually free hash array below...
+            ADUC_FileEntity_Uninit(newEntity);
+            free(newEntity);
+        }
 
-    if (tempHash != NULL)
-    {
-        ADUC_Hash_FreeArray(tempHashCount, tempHash);
+        if (tempHash != NULL)
+        {
+            ADUC_Hash_FreeArray(tempHashCount, tempHash);
+        }
     }
 
     return succeeded;
 }
 
-bool workflow_get_update_file_by_name(ADUC_WorkflowHandle handle, const char* fileName, ADUC_FileEntity* entity)
+bool workflow_get_update_file_by_name(ADUC_WorkflowHandle handle, const char* fileName, ADUC_FileEntity** entity)
 {
     if (entity == NULL)
     {
@@ -1850,10 +1291,12 @@ bool workflow_get_update_file_by_name(ADUC_WorkflowHandle handle, const char* fi
         return false;
     }
 
-    bool succeeded = false;
+    _Bool succeeded = false;
     const JSON_Object* files = NULL;
     const JSON_Object* file = NULL;
     const JSON_Object* fileUrls = NULL;
+    ADUC_FileEntity* newEntity = NULL;
+    *entity = NULL;
     const char* uri = NULL;
     const char* fileId = NULL;
     const char* name = NULL;
@@ -1917,24 +1360,30 @@ bool workflow_get_update_file_by_name(ADUC_WorkflowHandle handle, const char* fi
         sizeInBytes = json_object_get_number(file, ADUCITF_FIELDNAME_SIZEINBYTES);
     }
 
-    if (!ADUC_FileEntity_Init(entity, fileId, name, uri, arguments, tempHash, tempHashCount, sizeInBytes))
+    newEntity = malloc(sizeof(*newEntity));
+    if (newEntity == NULL)
+    {
+        goto done;
+    }
+
+    if (!ADUC_FileEntity_Init(newEntity, fileId, name, uri, arguments, tempHash, tempHashCount, sizeInBytes))
     {
         Log_Error("Invalid file entity arguments");
         goto done;
     }
 
-    if (!ParseFileEntityDownloadHandler(handle, file, entity))
-    {
-        goto done;
-    }
-
+    *entity = newEntity;
     succeeded = true;
 
 done:
     if (!succeeded)
     {
-        entity->Hash = NULL; // will be freed with tempHash below
-        ADUC_FileEntity_Uninit(entity);
+        if (newEntity != NULL)
+        {
+            newEntity->Hash = NULL; // Manually free hash array below...
+            ADUC_FileEntity_Uninit(newEntity);
+            free(newEntity);
+        }
 
         if (tempHash != NULL)
         {
@@ -1946,64 +1395,14 @@ done:
 }
 
 /**
- * @brief Gets the inode associated with the update file entity at the specified index.
+ * @brief Uninitialize and free specified file entity object.
  *
- * @param handle A workflow data object handle.
- * @param index An index of the file to get.
- * @return ino_t The inode, or ADUC_INODE_SENTINEL_VALUE if inode has not been set yet.
+ * @param entity A file entity object.
  */
-ino_t workflow_get_update_file_inode(ADUC_WorkflowHandle handle, size_t index)
+void workflow_free_file_entity(ADUC_FileEntity* entity)
 {
-    ino_t ret = ADUC_INODE_SENTINEL_VALUE;
-
-    ADUC_Workflow* wf = workflow_from_handle(handle);
-    if (wf == NULL)
-    {
-        Log_Warn("bad handle");
-    }
-    else if ((wf->UpdateFileInodes != NULL) && (index < workflow_get_update_files_count(handle)))
-    {
-        ret = (wf->UpdateFileInodes)[index];
-    }
-
-    return ret;
-}
-
-/**
- * @brief Sets the inode associated with the update file entity at the specified index.
- *
- * @param handle A workflow data object handle.
- * @param index An index of the file to get.
- * @param inode The inode.
- * @return bool true on success.
- */
-bool workflow_set_update_file_inode(ADUC_WorkflowHandle handle, size_t index, ino_t inode)
-{
-    ADUC_Workflow* wf = workflow_from_handle(handle);
-    if (wf == NULL)
-    {
-        Log_Warn("bad handle");
-        return false;
-    }
-
-    size_t count = workflow_get_update_files_count(handle);
-    if (index >= count)
-    {
-        Log_Warn("index %d out of range %d", index, count);
-        return false;
-    }
-
-    if (wf->UpdateFileInodes == NULL)
-    {
-        if (!workflow_init_update_file_inodes(wf))
-        {
-            Log_Warn("init inodes");
-            return false;
-        }
-    }
-
-    wf->UpdateFileInodes[index] = inode;
-    return true;
+    ADUC_FileEntity_Uninit(entity);
+    free(entity);
 }
 
 /**
@@ -2102,11 +1501,6 @@ ADUC_Result _workflow_init_helper(ADUC_WorkflowHandle* handle)
 
     wf->ResultDetails = STRING_new();
     wf->InstalledUpdateId = STRING_new();
-    wf->Result.ResultCode = ADUC_Result_Failure;
-    wf->Result.ExtendedResultCode = 0;
-    wf->ResultSuccessErc = 0;
-
-    wf->UpdateFileInodes = NULL;
 
     result.ResultCode = ADUC_GeneralResult_Success;
     result.ExtendedResultCode = 0;
@@ -2358,10 +1752,6 @@ bool workflow_transfer_data(ADUC_WorkflowHandle targetHandle, ADUC_WorkflowHandl
         return false;
     }
 
-    // Update the cached workfolder to use the source workflow id.
-    // Needs to be done before transferring parsed JSON obj below.
-    workflow_set_workfolder(targetHandle, "%s/%s", ADUC_DOWNLOADS_FOLDER, workflow_peek_id(sourceHandle));
-
     // Transfer over the parsed JSON objects
     wfTarget->UpdateActionObject = wfSource->UpdateActionObject;
     wfSource->UpdateActionObject = NULL;
@@ -2567,8 +1957,6 @@ void workflow_uninit(ADUC_WorkflowHandle handle)
     _workflow_free_properties(handle);
     _workflow_free_results_object(handle);
 
-    _workflow_free_update_file_inodes(wf);
-
     // This should have been transferred, but free it if it's still around.
     if (wf != NULL && wf->DeferredReplacementWorkflow != NULL)
     {
@@ -2616,14 +2004,6 @@ void workflow_set_parent(ADUC_WorkflowHandle handle, ADUC_WorkflowHandle parent)
     ADUC_Workflow* wf = workflow_from_handle(handle);
     wf->Parent = workflow_from_handle(parent);
     wf->Level = workflow_get_level(parent) + 1;
-
-    if (parent != NULL && workflow_is_cancel_requested(parent))
-    {
-        if (!workflow_request_cancel(handle))
-        {
-            Log_Warn("Workflow cancellation request failed. (workflow level %d)", wf->Level);
-        }
-    }
 }
 
 /**
@@ -2899,26 +2279,6 @@ ADUC_Result workflow_get_result(ADUC_WorkflowHandle handle)
     return wf->Result;
 }
 
-void workflow_set_success_erc(ADUC_WorkflowHandle handle, ADUC_Result_t erc)
-{
-    ADUC_Workflow* wf = workflow_from_handle(handle);
-    if (wf != NULL)
-    {
-        wf->ResultSuccessErc = erc;
-    }
-}
-
-ADUC_Result_t workflow_get_success_erc(ADUC_WorkflowHandle handle)
-{
-    ADUC_Workflow* wf = workflow_from_handle(handle);
-    if (wf == NULL)
-    {
-        return 0;
-    }
-
-    return wf->ResultSuccessErc;
-}
-
 const char* workflow_peek_result_details(ADUC_WorkflowHandle handle)
 {
     ADUC_Workflow* wf = workflow_from_handle(handle);
@@ -3034,9 +2394,9 @@ void workflow_update_for_replacement(ADUC_WorkflowHandle handle)
 {
     ADUC_Workflow* wf = workflow_from_handle(handle);
 
-    ADUC_Workflow* deferredWorkflow = wf->DeferredReplacementWorkflow;
+    ADUC_Workflow* deferred = wf->DeferredReplacementWorkflow;
     wf->DeferredReplacementWorkflow = NULL;
-    workflow_transfer_data(handle /* wfTarget */, deferredWorkflow /* wfSource */);
+    workflow_transfer_data(handle /* wfTarget */, deferred /* wfSource */);
 
     reset_state_for_processing_deployment(wf);
 }
@@ -3077,25 +2437,9 @@ bool workflow_read_state_from_file(ADUC_WorkflowHandle handle, const char* state
     return true;
 }
 
-bool workflow_request_cancel(ADUC_WorkflowHandle handle)
-{
-    if (handle == NULL)
-    {
-        return false;
-    }
-
-    bool success = workflow_set_boolean_property(handle, WORKFLOW_PROPERTY_FIELD_CANCEL_REQUESTED, true);
-    int childCount = workflow_get_children_count(handle);
-    for (int i = 0; i < childCount; i++)
-    {
-        success = success && workflow_request_cancel(workflow_get_child(handle, i));
-    }
-    return success;
-}
-
 bool workflow_is_cancel_requested(ADUC_WorkflowHandle handle)
 {
-    return workflow_get_boolean_property(handle, WORKFLOW_PROPERTY_FIELD_CANCEL_REQUESTED);
+    return workflow_get_boolean_property(workflow_get_root(handle), WORKFLOW_PROPERTY_FIELD_CANCEL_REQUESTED);
 }
 
 bool workflow_is_agent_restart_requested(ADUC_WorkflowHandle handle)
@@ -3393,7 +2737,7 @@ const char* workflow_peek_step_type(ADUC_WorkflowHandle handle, size_t stepIndex
     const char* stepType = json_object_get_string(step, STEP_PROPERTY_FIELD_TYPE);
     if (stepType == NULL)
     {
-        return DEFAULT_STEP_TYPE;
+        return DEAULT_STEP_TYPE;
     }
 
     return stepType;
@@ -3464,21 +2808,26 @@ const char* workflow_peek_update_manifest_step_handler(ADUC_WorkflowHandle handl
 /**
  * @brief Gets a reference step update manifest file at specified index.
  *
- * @param handle[in] A workflow data object handle.
- * @param stepIndex[in] A step index.
- * @param entity[out] An output reference step update manifest file entity object.
- * @return true on success.
+ * @param handle A workflow data object handle.
+ * @param stepIndex A step index.
+ * @param entity An output reference step update manifest file entity object.
+ *               Caller must free the object with workflow_free_file_entity().
+ * @return true If succeeded.
  */
-bool workflow_get_step_detached_manifest_file(ADUC_WorkflowHandle handle, size_t stepIndex, ADUC_FileEntity* entity)
+bool workflow_get_step_detached_manifest_file(ADUC_WorkflowHandle handle, size_t stepIndex, ADUC_FileEntity** entity)
 {
+    if (entity == NULL)
+    {
+        return false;
+    }
+
     size_t count = workflow_get_instructions_steps_count(handle);
     if (stepIndex >= count)
     {
         return false;
     }
 
-    bool succeeded = false;
-    bool fileEntityInited = false;
+    _Bool succeeded = false;
     JSON_Object* step = json_array_get_object(workflow_get_instructions_steps_array(handle), stepIndex);
     const char* fileId = json_object_get_string(step, STEP_PROPERTY_FIELD_DETACHED_MANIFEST_FILE_ID);
     const JSON_Object* files = _workflow_get_update_manifest_files_map(handle);
@@ -3488,6 +2837,8 @@ bool workflow_get_step_detached_manifest_file(ADUC_WorkflowHandle handle, size_t
     const char* name = NULL;
     size_t tempHashCount = 0;
     ADUC_Hash* tempHash = NULL;
+
+    *entity = NULL;
 
     // Find fileurls map in this workflow, and its enclosing workflow(s).
     ADUC_WorkflowHandle h = handle;
@@ -3526,16 +2877,15 @@ bool workflow_get_step_detached_manifest_file(ADUC_WorkflowHandle handle, size_t
         sizeInBytes = json_object_get_number(file, ADUCITF_FIELDNAME_SIZEINBYTES);
     }
 
-    if (!ADUC_FileEntity_Init(entity, fileId, name, uri, NULL /*arguments*/, tempHash, tempHashCount, sizeInBytes))
+    *entity = malloc(sizeof(**entity));
+    if (*entity == NULL)
     {
-        Log_Error("Invalid file entity arguments");
         goto done;
     }
 
-    fileEntityInited = true;
-
-    if (!ParseFileEntityDownloadHandler(handle, file, entity))
+    if (!ADUC_FileEntity_Init(*entity, fileId, name, uri, NULL /*arguments*/, tempHash, tempHashCount, sizeInBytes))
     {
+        Log_Error("Invalid file entity arguments");
         goto done;
     }
 
@@ -3543,9 +2893,14 @@ bool workflow_get_step_detached_manifest_file(ADUC_WorkflowHandle handle, size_t
 
 done:
 
-    if (!succeeded && fileEntityInited)
+    if (!succeeded)
     {
-        ADUC_FileEntity_Uninit(entity);
+        if (*entity != NULL)
+        {
+            ADUC_FileEntity_Uninit(*entity);
+            free(*entity);
+            *entity = NULL;
+        }
     }
 
     return succeeded;
@@ -3567,68 +2922,6 @@ char* workflow_get_serialized_update_manifest(ADUC_WorkflowHandle handle, bool p
     }
 
     return json_serialize_to_string(json_object_get_wrapping_value(o));
-}
-
-/**
- * @brief Gets the file path of the entity target update under the download work folder sandbox.
- *
- * @param workflowHandle The workflow handle.
- * @param entity The file entity.
- * @param outFilePath The resultant work folder file path to the file entity.
- * @return bool true if success
- * @remark Caller will own the STRING_HANDLE outFilePath and must call STRING_delete on it.
- */
-bool workflow_get_entity_workfolder_filepath(
-    ADUC_WorkflowHandle workflowHandle, const ADUC_FileEntity* entity, STRING_HANDLE* outFilePath)
-{
-    bool result = false;
-    char dir[1024] = { 0 };
-    char* workFolder = workflow_get_workfolder(workflowHandle);
-    if (workFolder == NULL)
-    {
-        goto done;
-    }
-
-    sprintf(dir, "%s/%s", workFolder, entity->TargetFilename);
-
-    if (dir[0] != 0)
-    {
-        STRING_HANDLE temp = STRING_construct(dir);
-
-        if (temp == NULL)
-        {
-            goto done;
-        }
-
-        *outFilePath = temp;
-    }
-
-    result = true;
-
-done:
-    workflow_free_string(workFolder);
-
-    return result;
-}
-
-bool workflow_get_force_update(ADUC_WorkflowHandle workflowHandle)
-{
-    ADUC_Workflow* wf = workflow_from_handle(workflowHandle);
-    if (wf == NULL)
-    {
-        return false;
-    }
-
-    return wf->ForceUpdate;
-}
-
-void workflow_set_force_update(ADUC_WorkflowHandle handle, bool forceUpdate)
-{
-    ADUC_Workflow* wf = workflow_from_handle(handle);
-    if (wf != NULL)
-    {
-        wf->ForceUpdate = forceUpdate;
-    }
 }
 
 EXTERN_C_END

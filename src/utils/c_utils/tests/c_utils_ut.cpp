@@ -223,7 +223,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Missing Update Name")
@@ -232,7 +231,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Missing Version Number")
@@ -241,7 +239,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Missing Delimiter")
@@ -250,7 +247,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Negative Number")
@@ -259,7 +255,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Ransome Negative Number")
@@ -268,7 +263,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Zero")
@@ -279,7 +273,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         CHECK(ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
         CHECK_THAT(updateTypeName, Equals("microsoft/apt"));
         CHECK(updateTypeVersion == 0);
-        free(updateTypeName);
     }
 
     SECTION("Positive Number")
@@ -290,7 +283,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         CHECK(ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
         CHECK_THAT(updateTypeName, Equals("microsoft/apt"));
         CHECK(updateTypeVersion == 1);
-        free(updateTypeName);
     }
 
     SECTION("Positive Large Number")
@@ -301,7 +293,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         CHECK(ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
         CHECK_THAT(updateTypeName, Equals("microsoft/apt"));
         CHECK(updateTypeVersion == 4294967294);
-        free(updateTypeName);
     }
 
     SECTION("Positive UINT MAX")
@@ -310,7 +301,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Positive Larger Than UINT MAX")
@@ -319,7 +309,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Positive ULONG MAX")
@@ -328,7 +317,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Version contains space")
@@ -337,7 +325,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 
     SECTION("Decimal version")
@@ -346,7 +333,6 @@ TEST_CASE("ADUC_ParseUpdateType and atoui")
         char* updateTypeName = nullptr;
         unsigned int updateTypeVersion;
         CHECK(!ADUC_ParseUpdateType(updateType, &updateTypeName, &updateTypeVersion));
-        free(updateTypeName);
     }
 }
 

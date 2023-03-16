@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.5)
 
 install (
-    FILES deviceupdate-agent.service
+    FILES adu-agent.service
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system
     PERMISSIONS
         OWNER_READ

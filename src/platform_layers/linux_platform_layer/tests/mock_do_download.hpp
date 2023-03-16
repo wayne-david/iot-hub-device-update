@@ -13,11 +13,6 @@
 #include <chrono>
 #include <memory>
 #include <string>
-#include <system_error>
-
-// This DO_OK is from https:://github.com/microsoft/do-client/blob/main/sdk-cpp/src/internal/do_error_helpers.h
-// Error code value for success/no-error case
-#define DO_OK std::error_code()
 
 namespace microsoft
 {
@@ -48,20 +43,20 @@ public:
     download(download&&) = delete;
     download& operator=(download&&) = delete;
 
-    std::error_code start();
-    std::error_code pause();
-    std::error_code resume();
-    std::error_code finalize();
-    std::error_code abort();
+    void start();
+    void pause();
+    void resume();
+    void finalize();
+    void abort();
 
     download_status get_status() const;
 
-    static const std::error_code download_url_to_path(
+    static void download_url_to_path(
         const std::string& uri,
         const std::string& downloadFilePath,
         std::chrono::seconds timeoutSecs = std::chrono::hours(24));
 
-    static const std::error_code download_url_to_path(
+    static void download_url_to_path(
         const std::string& uri,
         const std::string& downloadFilePath,
         const std::atomic_bool& isCancelled,

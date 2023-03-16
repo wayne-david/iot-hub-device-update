@@ -10,17 +10,12 @@
 
 #include "aduc/adu_core_exports.h"
 
-EXTERN_C_BEGIN
+extern "C" {
 
 typedef ADUC_Result (*InitializeProc)(const char* initializeData);
 
-typedef ADUC_Result (*DownloadProc)(
-    const ADUC_FileEntity* entity,
-    const char* workflowId,
-    const char* workFolder,
-    unsigned int retryTimeout,
-    ADUC_DownloadProgressCallback downloadProgressCallback);
+typedef ADUC_Result (*DownloadProc)(const ADUC_FileEntity* entity, const char* workflowId, const char* workFolder, unsigned int retryTimeout, ADUC_DownloadProgressCallback downloadProgressCallback);
 
-EXTERN_C_END
+}
 
 #endif // ADUC_CONTENT_DOWNLOADER_EXTENSION_HPP

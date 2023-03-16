@@ -69,11 +69,10 @@ ADUC_Result do_download(
         const int32_t doErrorCode = e.error_code();
         // Note: The call to download_url_to_path() does not make use of a cancellation token,
         // so the download can only timeout or hit a fatal error.
-        Log_Error("DO error, msg: %s, code: %#08x, timeout? %d", doErrorCode.message().c_str(), doErrorCode.value(),
-            (doErrorCode == std::errc::timed_out));
+        Log_Error("DO error, msg: %s, code: %#08x, timeout? %d", e.what(), doErrorCode,doErrorCode);
 
         resultCode = ADUC_Result_Failure;
-        extendedResultCode = MAKE_ADUC_DELIVERY_OPTIMIZATION_EXTENDEDRESULTCODE(doErrorCode.value());
+        extendedResultCode = MAKE_ADUC_DELIVERY_OPTIMIZATION_EXTENDEDRESULTCODE(doErrorCode);
     }
 
 

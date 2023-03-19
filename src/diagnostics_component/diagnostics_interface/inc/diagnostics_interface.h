@@ -8,11 +8,10 @@
 #ifndef DIAGNOSTICS_INTERFACE_H
 #define DIAGNOSTICS_INTERFACE_H
 
-#include <aduc/adu_types.h>
 #include <aduc/c_utils.h>
 #include <aduc/client_handle.h>
 #include <azureiot/iothub_client_core_common.h>
-#include <diagnostics_result.h>
+#include <diagnostics_workflow.h>
 #include <parson.h>
 
 #include <stdbool.h>
@@ -83,12 +82,7 @@ void DiagnosticsInterface_Destroy(void** componentContext);
  * @brief A callback for the diagnostic component's property update events.
  */
 void DiagnosticsInterface_PropertyUpdateCallback(
-    ADUC_ClientHandle clientHandle,
-    const char* propertyName,
-    JSON_Value* propertyValue,
-    int version,
-    ADUC_PnPComponentClient_PropertyUpdate_Context* sourceContext,
-    void* context);
+    ADUC_ClientHandle clientHandle, const char* propertyName, JSON_Value* propertyValue, int version, void* context);
 
 //
 // Reporting

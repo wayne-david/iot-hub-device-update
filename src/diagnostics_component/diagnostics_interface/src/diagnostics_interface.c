@@ -9,12 +9,10 @@
 
 #include "aduc/c_utils.h"
 #include "aduc/client_handle_helper.h"
-#include "aduc/d2c_messaging.h"
 #include "aduc/logging.h"
 #include "aduc/string_c_utils.h" // atoint64t
 #include <ctype.h> // isalnum
-#include <diagnostics_async_helper.h> // for DiagnosticsWorkflow_DiscoverAndUploadLogsAsync
-#include <diagnostics_config_utils.h> // for DiagnosticsWorkflowData, DiagnosticsWorkflow_InitFromFile
+#include <diagnostics_workflow.h>
 #include <pnp_protocol.h>
 #include <stdlib.h>
 
@@ -63,7 +61,7 @@ _Bool DiagnosticsInterface_Create(void** componentContext, int argc, char** argv
         goto done;
     }
 
-    if (!DiagnosticsConfigUtils_InitFromFile(workflowData, DIAGNOSTICS_CONFIG_FILE_PATH))
+    if (!DiagnosticsWorkflow_InitFromFile(workflowData, DIAGNOSTICS_CONFIG_FILE_PATH))
     {
         Log_Error("Unable to initialize the diagnostic workflow data.");
         goto done;
@@ -75,7 +73,7 @@ done:
 
     if (!succeeded)
     {
-        DiagnosticsConfigUtils_UnInit(workflowData);
+        DiagnosticsWorkflow_UnInit(workflowData);
         free(workflowData);
         workflowData = NULL;
     }
@@ -107,32 +105,65 @@ void DiagnosticsInterface_Destroy(void** componentContext)
 
     DiagnosticsWorkflowData* workflowData = (DiagnosticsWorkflowData*)*componentContext;
 
-    DiagnosticsConfigUtils_UnInit(workflowData);
+    DiagnosticsWorkflow_UnInit(workflowData);
     free(workflowData);
     *componentContext = NULL;
 }
 
-/**
- * @brief This function is called when the message is no longer being process.
- *
- * @param context The ADUC_D2C_Message object
- * @param status The message status.
- */
-static void OnDiagnosticsD2CMessageCompleted(void* context, ADUC_D2C_Message_Status status)
+void DiagnosticsClientReportedStateCallback(int statusCode, void* context)
 {
     UNREFERENCED_PARAMETER(context);
-    Log_Debug("Send message completed (status:%d)", status);
+
+    if (statusCode < 200 || statusCode >= 300)
+    {
+        Log_Error(
+            "Failed to report ADU agent's state, error: %d, %s",
+            statusCode,
+            MU_ENUM_TO_STRING(IOTHUB_CLIENT_RESULT, statusCode));
+    }
+}
+
+/**
+ * @brief Sends status message to IotHub
+ * @param clientHandle handle for the IotHub client handle to send the message to
+ * @param msgToSend message to send to IotHub
+ * @param msgSize size of @p msgToSend
+ * @returns the result of the IotHub message send action
+ */
+static IOTHUB_CLIENT_RESULT
+SendMessageToIotHub(ADUC_ClientHandle clientHandle, const char* msgToSend, const size_t msgSize)
+{
+    IOTHUB_CLIENT_RESULT iothubClientResult = IOTHUB_CLIENT_ERROR;
+
+    if (g_iotHubClientHandleForDiagnosticsComponent == NULL)
+    {
+        Log_Error("SendMessageToIotHub called before registration. Can't report!");
+        goto done;
+    }
+
+    iothubClientResult = ClientHandle_SendReportedState(
+        clientHandle, (const unsigned char*)msgToSend, msgSize, DiagnosticsClientReportedStateCallback, NULL);
+
+    if (iothubClientResult != IOTHUB_CLIENT_OK)
+    {
+        goto done;
+    }
+
+done:
+
+    return iothubClientResult;
 }
 
 /**
  * @brief Function for sending a PnP message to the IotHub
  * @param clientHandle handle for the IotHub client handle to send the message to
  * @param jsonString message to send to the iothub
- * @returns True if success.
+ * @returns the result of the IotHub message send action
  */
-static _Bool SendPnPMessageToIotHub(ADUC_ClientHandle clientHandle, const char* jsonString)
+static IOTHUB_CLIENT_RESULT SendPnPMessageToIotHub(ADUC_ClientHandle clientHandle, const char* jsonString)
 {
-    _Bool success = false;
+    IOTHUB_CLIENT_RESULT iothubClientResult = IOTHUB_CLIENT_ERROR;
+
     // Reporting just a message
     STRING_HANDLE jsonToSend = PnP_CreateReportedProperty(
         g_diagnosticsPnPComponentName, g_diagnosticsPnPComponentAgentPropertyName, jsonString);
@@ -143,25 +174,21 @@ static _Bool SendPnPMessageToIotHub(ADUC_ClientHandle clientHandle, const char* 
         goto done;
     }
 
-    if (!ADUC_D2C_Message_SendAsync(
-            ADUC_D2C_Message_Type_Diagnostics,
-            &g_iotHubClientHandleForDiagnosticsComponent,
-            STRING_c_str(jsonToSend),
-            NULL /* responseCallback */,
-            OnDiagnosticsD2CMessageCompleted,
-            NULL /* statusChangedCallback */,
-            NULL /* userData */))
+    const char* jsonToSendStr = STRING_c_str(jsonToSend);
+    size_t jsonToSendStrLen = STRING_length(jsonToSend);
+
+    iothubClientResult = SendMessageToIotHub(clientHandle, jsonToSendStr, jsonToSendStrLen);
+
+    if (iothubClientResult != IOTHUB_CLIENT_OK)
     {
-        Log_Error("Unable to send diagnostics message.");
         goto done;
     }
 
-    success = true;
 done:
 
     STRING_delete(jsonToSend);
 
-    return success;
+    return iothubClientResult;
 }
 
 /**
@@ -170,13 +197,13 @@ done:
  * @param jsonString message to send to the iothub
  * @param status value to set as the status to send up to the iothub
  * @param propertyVersion value for the version to send up to the iothub
- * @returns True if success.
+ * @returns the result of the IotHub message send action
  */
-static _Bool SendPnPMessageToIotHubWithStatus(
+static IOTHUB_CLIENT_RESULT SendPnPMessageToIotHubWithStatus(
     ADUC_ClientHandle clientHandle, const char* jsonString, int status, int propertyVersion)
 {
     STRING_HANDLE jsonToSend = NULL;
-    _Bool success = false;
+    IOTHUB_CLIENT_RESULT iothubClientResult = IOTHUB_CLIENT_ERROR;
 
     if (g_iotHubClientHandleForDiagnosticsComponent == NULL)
     {
@@ -194,30 +221,24 @@ static _Bool SendPnPMessageToIotHubWithStatus(
 
     if (jsonToSend == NULL)
     {
-        Log_Error("Unable to serialize JSON passed to SendPnPMessageToIotHub");
+        Log_Error("Unable to serialize JSON passed to SendPnPMessagetoIotHub");
         goto done;
     }
+    const char* jsonToSendStr = STRING_c_str(jsonToSend);
+    const size_t jsonToSendStrLen = STRING_length(jsonToSend);
 
-    if (!ADUC_D2C_Message_SendAsync(
-            ADUC_D2C_Message_Type_Diagnostics_ACK,
-            &g_iotHubClientHandleForDiagnosticsComponent,
-            STRING_c_str(jsonToSend),
-            NULL /* responseCallback */,
-            OnDiagnosticsD2CMessageCompleted,
-            NULL /* statusChangedCallback */,
-            NULL /* userData */))
+    iothubClientResult = SendMessageToIotHub(clientHandle, jsonToSendStr, jsonToSendStrLen);
+
+    if (iothubClientResult != IOTHUB_CLIENT_OK)
     {
-        Log_Error("Unable to send diagnostic ACK message.");
         goto done;
     }
-
-    success = true;
 
 done:
 
     STRING_delete(jsonToSend);
 
-    return success;
+    return iothubClientResult;
 }
 
 void DiagnosticsOrchestratorUpdateCallback(
@@ -235,11 +256,16 @@ void DiagnosticsOrchestratorUpdateCallback(
 
     DiagnosticsWorkflow_DiscoverAndUploadLogsAsync(context, jsonString);
 
-    // Ack the request!
-    if (!SendPnPMessageToIotHubWithStatus(clientHandle, jsonString, PNP_STATUS_SUCCESS, propertyVersion))
+    // Ack the request
+    IOTHUB_CLIENT_RESULT iothubClientResult =
+        SendPnPMessageToIotHubWithStatus(clientHandle, jsonString, PNP_STATUS_SUCCESS, propertyVersion);
+
+    if (iothubClientResult != IOTHUB_CLIENT_OK)
     {
         Log_Error(
-            "Unable to send acknowledgement of property to IoT Hub for component=%s", g_diagnosticsPnPComponentName);
+            "Unable to send acknowledgement of property to IoT Hub for component=%s, error=%d",
+            g_diagnosticsPnPComponentName,
+            iothubClientResult);
         goto done;
     }
 
@@ -252,14 +278,8 @@ done:
  * @brief A callback for the diagnostic component's property update events.
  */
 void DiagnosticsInterface_PropertyUpdateCallback(
-    ADUC_ClientHandle clientHandle,
-    const char* propertyName,
-    JSON_Value* propertyValue,
-    int version,
-    ADUC_PnPComponentClient_PropertyUpdate_Context* sourceContext,
-    void* context)
+    ADUC_ClientHandle clientHandle, const char* propertyName, JSON_Value* propertyValue, int version, void* context)
 {
-    UNREFERENCED_PARAMETER(sourceContext);
     if (strcmp(propertyName, g_diagnosticsPnPComponentOrchestratorPropertyName) == 0)
     {
         DiagnosticsOrchestratorUpdateCallback(clientHandle, propertyValue, version, context);
@@ -306,9 +326,16 @@ void DiagnosticsInterface_ReportStateAndResultAsync(const Diagnostics_Result res
         goto done;
     }
 
-    if (!SendPnPMessageToIotHub(g_iotHubClientHandleForDiagnosticsComponent, jsonString))
+    IOTHUB_CLIENT_RESULT iotHubResult =
+        SendPnPMessageToIotHub(g_iotHubClientHandleForDiagnosticsComponent, jsonString);
+
+    if (iotHubResult != IOTHUB_CLIENT_OK)
     {
-        Log_Error("Diagnostics Interface unable to report state, %s", jsonString);
+        Log_Error(
+            "Diagnostics Interface unable to report state, %s, error: %d, %s",
+            jsonString,
+            iotHubResult,
+            MU_ENUM_TO_STRING(IOTHUB_CLIENT_RESULT, iotHubResult));
         goto done;
     }
 

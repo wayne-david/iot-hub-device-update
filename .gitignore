@@ -13,8 +13,6 @@ TAGS
 .TAGS
 !TAGS/
 tags
-tags.lock
-tags.temp
 .tags
 !tags/
 gtags.files
@@ -27,9 +25,6 @@ cscope.out
 cscope.in.out
 cscope.po.out
 
-### Python Module Files
-*__pycache__
-*__pycache__/*
 ### ADU build environment
 out/
 build/

@@ -56,8 +56,10 @@ void DeviceInfoInterface_Destroy(void** componentContext);
 
 /**
  * @brief Report any changed DeviceInfo properties up to server.
+ *
+ * @return DIGITALTWIN_CLIENT_RESULT Result code.
  */
-void DeviceInfoInterface_ReportChangedPropertiesAsync();
+IOTHUB_CLIENT_RESULT DeviceInfoInterface_ReportChangedPropertiesAsync();
 
 EXTERN_C_END
 

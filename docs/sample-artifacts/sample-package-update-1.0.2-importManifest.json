@@ -8,8 +8,8 @@
     "installedCriteria":  "Sample package update-1.0.2",
     "compatibility":  [
                           {
-                              "manufacturer":  "Contoso",
-                              "model":  "Video"
+                              "deviceManufacturer":  "Contoso",
+                              "deviceModel":  "Video"
                           }
                       ],
     "files":  [

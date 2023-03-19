@@ -67,7 +67,7 @@ $parentFile = "$env:TEMP/parentFile.bin.txt"
 Write-Host 'Preparing child update ...'
 
 $microphoneUpdateId = New-AduUpdateId -Provider Contoso -Name Microphone -Version $UpdateVersion
-$microphoneCompat = New-AduUpdateCompatibility -Manufacturer Contoso -Model Microphone
+$microphoneCompat = New-AduUpdateCompatibility -DeviceManufacturer Contoso -DeviceModel Microphone
 $microphoneInstallStep = New-AduInstallationStep -Handler 'microsoft/swupdate:1' -Files $childFile
 $microphoneUpdate = New-AduImportUpdateInput -UpdateId $microphoneUpdateId `
                                              -IsDeployable $false `
@@ -81,7 +81,7 @@ $microphoneUpdate = New-AduImportUpdateInput -UpdateId $microphoneUpdateId `
 Write-Host 'Preparing another child update ...'
 
 $speakerUpdateId = New-AduUpdateId -Provider Contoso -Name Speaker -Version $UpdateVersion
-$speakerCompat = New-AduUpdateCompatibility -Manufacturer Contoso -Model Speaker
+$speakerCompat = New-AduUpdateCompatibility -DeviceManufacturer Contoso -DeviceModel Speaker
 $speakerInstallStep = New-AduInstallationStep -Handler 'microsoft/swupdate:1' -Files $childFile
 $speakerUpdate = New-AduImportUpdateInput -UpdateId $speakerUpdateId `
                                           -IsDeployable $false `
@@ -95,7 +95,7 @@ $speakerUpdate = New-AduImportUpdateInput -UpdateId $speakerUpdateId `
 Write-Host 'Preparing parent update ...'
 
 $parentUpdateId = New-AduUpdateId -Provider Contoso -Name Toaster -Version $UpdateVersion
-$parentCompat = New-AduUpdateCompatibility -Manufacturer Contoso -Model Toaster
+$parentCompat = New-AduUpdateCompatibility -DeviceManufacturer Contoso -DeviceModel Toaster
 $parentSteps = @()
 $parentSteps += New-AduInstallationStep -Handler 'microsoft/script:1' -Files $parentFile -HandlerProperties @{ 'arguments'='--pre'} -Description 'Pre-install script'
 $parentSteps += New-AduInstallationStep -UpdateId $microphoneUpdateId -Description 'Microphone Firmware'

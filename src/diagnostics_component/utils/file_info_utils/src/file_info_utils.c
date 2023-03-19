@@ -229,8 +229,8 @@ _Bool FileInfoUtils_GetNewestFilesInDirUnderSize(
             // No more files to add
             break;
         }
-        currentFileMaxCount += discoveredFiles[fileIndex].fileSize;
         ++fileIndex;
+        currentFileMaxCount += discoveredFiles[fileIndex].fileSize;
     }
 
     // Only log file found is larger than our maxFileSize

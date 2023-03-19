@@ -70,13 +70,13 @@ configuration file. Place your device connection string in /adu/adu-conf.txt.
 To manually start the daemon:
 
 ```shell
-sudo systemctl start deviceupdate-agent
+sudo systemctl start adu-agent
 ```
 
 To manually stop the daemon:
 
 ```shell
-sudo systemctl stop deviceupdate-agent
+sudo systemctl stop adu-agent
 ```
 
 ## How To Create 'adu' Group and User

@@ -20,9 +20,10 @@ target_include_directories (${PROJECT_NAME} PRIVATE ${ADUC_EXPORT_INCLUDES})
 
 target_link_libraries (
     ${PROJECT_NAME}
-    PUBLIC IotHubClient::iothub_client iothub_client_mqtt_transport umqtt
+    PUBLIC IotHubClient::iothub_client
+           iothub_client_mqtt_transport umqtt
+
     PRIVATE aduc::linux_platform_layer
-            aduc::extension_manager
             aduc::logging
             aduc::system_utils
             aduc::exception_utils

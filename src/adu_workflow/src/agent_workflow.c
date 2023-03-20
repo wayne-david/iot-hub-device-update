@@ -255,7 +255,7 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
         // if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
         // {
         char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
-        Log_Info("Forcing success updateId '%s'", ADUCITF_UpdateActionToString(updateId));
+        Log_Info("Forcing success updateId '%s'",workflow_peek_id(currentWorkflowData->WorkflowHandle));
         ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
         free(updateId);
         goto done;

@@ -251,43 +251,40 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
     }
     else
     {
-        ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
-        if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
-        {
-            char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
-            ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
-            free(updateId);
-            goto done;
-        }
-
-        // The default result for Idle state.
-        // This will reset twin status code to 200 to indicate that we're successful (so far).
-        const ADUC_Result result = { .ResultCode = ADUC_Result_Idle_Success };
-
-        int desiredAction = workflow_get_action(currentWorkflowData->WorkflowHandle);
-        if (desiredAction == ADUCITF_UpdateAction_Undefined)
-        {
-            goto done;
-        }
-
-        if (desiredAction == ADUCITF_UpdateAction_Cancel)
-        {
-            Log_Info("Received 'cancel' action on startup, reporting Idle state.");
-
-            ADUC_WorkflowData_SetCurrentAction(desiredAction, currentWorkflowData);
-
-            SetUpdateStateWithResultFunc setUpdateStateWithResultFunc =
-                ADUC_WorkflowData_GetSetUpdateStateWithResultFunc(currentWorkflowData);
-            (*setUpdateStateWithResultFunc)(currentWorkflowData, ADUCITF_State_Idle, result);
-
-            goto done;
-        }
-
-        Log_Info("There's a pending '%s' action", ADUCITF_UpdateActionToString(desiredAction));
+        // ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
+        // if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
+        // {
         char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
-            ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
-            free(updateId);
-            goto done;
+        Log_Info("Forcing success updateId '%s'", ADUCITF_UpdateActionToString(updateId));
+        ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
+        free(updateId);
+        goto done;
+        //}
+
+        // // The default result for Idle state.
+        // // This will reset twin status code to 200 to indicate that we're successful (so far).
+        // const ADUC_Result result = { .ResultCode = ADUC_Result_Idle_Success };
+
+        // int desiredAction = workflow_get_action(currentWorkflowData->WorkflowHandle);
+        // if (desiredAction == ADUCITF_UpdateAction_Undefined)
+        // {
+        //     goto done;
+        // }
+
+        // if (desiredAction == ADUCITF_UpdateAction_Cancel)
+        // {
+        //     Log_Info("Received 'cancel' action on startup, reporting Idle state.");
+
+        //     ADUC_WorkflowData_SetCurrentAction(desiredAction, currentWorkflowData);
+
+        //     SetUpdateStateWithResultFunc setUpdateStateWithResultFunc =
+        //         ADUC_WorkflowData_GetSetUpdateStateWithResultFunc(currentWorkflowData);
+        //     (*setUpdateStateWithResultFunc)(currentWorkflowData, ADUCITF_State_Idle, result);
+
+        //     goto done;
+        // }
+
+        // Log_Info("There's a pending '%s' action", ADUCITF_UpdateActionToString(desiredAction));
     }
 
     // There's a pending ProcessDeployment action in the twin.

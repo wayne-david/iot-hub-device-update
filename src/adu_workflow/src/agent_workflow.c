@@ -250,16 +250,19 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
         Log_Info("There's no update actions in current workflow (first time connected to IoT Hub).");
     }
     else
-    {
+    {  
+        Log_Info("Forcing success updateId '%s'",workflow_peek_id(currentWorkflowData->WorkflowHandle));
+        const ADUC_Result result = { .ResultCode = ADUC_Result_Idle_Success };
+       
         // ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
         // if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
         // {
-        char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
-        Log_Info("Forcing success updateId '%s'",workflow_peek_id(currentWorkflowData->WorkflowHandle));
-        ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
-        free(updateId);
-        goto done;
-        //}
+        //     char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
+        //     Log_Info("Forcing success updateId '%s'",workflow_peek_id(currentWorkflowData->WorkflowHandle));
+        //     ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
+        //     free(updateId);
+        //     goto done;
+        // }
 
         // // The default result for Idle state.
         // // This will reset twin status code to 200 to indicate that we're successful (so far).

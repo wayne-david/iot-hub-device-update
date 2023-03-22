@@ -276,8 +276,11 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
         {
             Log_Info("Checking isinstalledResult after ProcessDeployment was detected");
             ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
+            Log_Info("Is Installed Result '%s' code 's'",isInstalledResult,isInstalledResult.ResultCode);
+
             if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
             {
+                Log_Info("Update is installed");
                 char* updateId = workflow_get_expected_update_id_string(currentWorkflowData->WorkflowHandle);
                 ADUC_Workflow_SetInstalledUpdateIdAndGoToIdle(currentWorkflowData, updateId);
                 free(updateId);

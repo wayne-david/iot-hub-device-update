@@ -276,7 +276,7 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
         {
             Log_Info("Checking isinstalledResult after ProcessDeployment was detected");
             ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
-            Log_Info("Is Installed Result '%s' Result %d",isInstalledResult,isInstalledResult);
+            Log_Info("Is Installed Result %d",isInstalledResult);
 
             if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
             {

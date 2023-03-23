@@ -276,7 +276,7 @@ void ADUC_Workflow_HandleStartupWorkflowData(ADUC_WorkflowData* currentWorkflowD
         {
             Log_Info("Checking isinstalledResult after ProcessDeployment was detected");
             ADUC_Result isInstalledResult = ADUC_Workflow_MethodCall_IsInstalled(currentWorkflowData);
-            Log_Info("Is Installed Result '%s' code 's'",isInstalledResult,isInstalledResult.ResultCode);
+            Log_Info("Is Installed Result '%s' Result %d",isInstalledResult,isInstalledResult);
 
             if (isInstalledResult.ResultCode == ADUC_Result_IsInstalled_Installed)
             {
@@ -939,8 +939,7 @@ void ADUC_Workflow_DefaultDownloadProgressCallback(
  * @param[in,out] workflowData Workflow data.
  * @param[in] updateState New update state to transition to.
  * @param[in] result Result to report (optional, can be NULL).
- */
-static void ADUC_Workflow_SetUpdateStateHelper(
+ */static void ADUC_Workflow_SetUpdateStateHelper(
     ADUC_WorkflowData* workflowData, ADUCITF_State updateState, const ADUC_Result* result)
 {
     Log_Info("Setting UpdateState to %s", ADUCITF_StateToString(updateState));
@@ -1323,6 +1322,7 @@ ADUC_Result ADUC_Workflow_MethodCall_Apply(ADUC_MethodCall_Data* methodCallData)
         result.ExtendedResultCode = ADUC_ERC_NOTPERMITTED;
         goto done;
     }
+   
 
     ADUC_Workflow_SetUpdateState(workflowData, ADUCITF_State_ApplyStarted);
 
